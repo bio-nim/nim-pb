@@ -10,36 +10,24 @@ extern "C" {
 #include <string.h>
 #include "stack.h"
 
-unsigned char seq_nt4_table[256] = {
-        0, 1, 2, 3,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  3, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 0, 4, 1,  4, 4, 4, 2,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  3, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
-        4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
-};
-
-
-
 /**
  * kmer - a uint64 supporting a maximum of 32 DNA bases.
  * pos  - position along the sequence
  */
 typedef struct seed {
-        uint64 kmer;
-        uint32 pos;
+        uint64_t kmer;
+        uint32_t pos;
         uint8_t strand;
-} seed_t
+} seed_t;
+
+/**
+ * seeds - a pointer to the kmers
+ * n  - the number of kmers in the database
+ */
+typedef struct seed_holder {
+        seed_t * seeds;
+        uint32_t n;
+} pot_t;
 
 
 /**
@@ -49,7 +37,13 @@ typedef struct seed {
  * @param  k - kmer size
  * @return      [description]
  */
-seed_t * dna_to_kmer (char * seq, uint32 len, uint8_t k);
+pot_t * dna_to_kmer (char * seq, uint32_t len, uint8_t k);
+
+/**
+ * Prints the pot structure to STDOUT
+ * @param pot a pointer to the pot
+ */
+void print_pot(pot_t * pot);
 
 #ifdef __cplusplus
 }

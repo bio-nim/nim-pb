@@ -25,6 +25,7 @@ typedef struct seed {
  * n  - the number of kmers in the database
  */
 typedef struct seed_holder {
+        size_t word_size;
         seed_t * seeds;
         uint32_t n;
 } pot_t;
@@ -44,6 +45,17 @@ pot_t * dna_to_kmer (char * seq, uint32_t len, uint8_t k);
  * @param pot a pointer to the pot
  */
 void print_pot(pot_t * pot);
+
+/**
+ * A function to convert the binary DNA back into character
+ * @param target - char * to load
+ * @param kmer   [description]
+ * @param k      [description]
+ * @param strand [description]
+ */
+char * bin_to_dna(uint64_t kmer, uint8_t k, uint8_t strand);
+
+
 
 #ifdef __cplusplus
 }

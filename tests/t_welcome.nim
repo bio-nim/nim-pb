@@ -7,7 +7,7 @@
 
 import unittest
 
-import pbpkg/kmers
+import pbpkg/welcome
 
 test "correct welcome":
   check getWelcomeMessage() == "Hello, World!"

@@ -1,11 +1,9 @@
-# vim: sw=4 ts=4 sts=4 tw=80 et:
+# vim: sw=4 ts=4 sts=4 tw=0 et:
 import deques
 import tables
-from strutils import format
 from algorithm import sort
-
-proc getWelcomeMessage*(): string =
-    "Hello, World!"
+from hashes import nil
+from strutils import format
 
 type
     Dna* = string             # someday, this might be something more compact
@@ -52,17 +50,30 @@ var seq_nt4_table: array[256, int] = [
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
 
+
+##  @return uninitialized
+#
+proc newDna(size: int): Dna =
+    return newString(size)
+
+proc hash*(s: kmers.seed_t): hashes.Hash =
+   #hashes.hash(s.pos) + hashes.hash(s.kmer shl 8) + hashes.hash(s.strand)
+   hashes.hash([s.pos.int, s.kmer.int, s.strand.int])
+
+proc hash*(p: kmers.seed_pair_t): hashes.Hash =
+   hashes.hash([hash(p.a), hash(p.b)])
+
 ##  Converts a char * into a set of seed_t objects.
 ##  @param  sq  - sequence
 ##  @param  k - kmer size (<=32)
 ##  @return pot
+##
+##  Zero is A, one is C, G is two, and T is 3
 #
-proc dna_to_kmer*(sq: string; k: int): pot_t =
+proc dna_to_kmer*(sq: Dna; k: int): pot_t =
     if sq.len == 0 or k > 32:
         return nil
     new(result)
-
-    ##  Zero is A, one is C, G is two, and T is 3
 
     var
         shift1: uint64 = 2'u64 * (k - 1).uint64
@@ -127,23 +138,21 @@ proc dna_to_kmer*(sq: string; k: int): pot_t =
 
     while i < n:
         kmers.seeds[i] = kmer_stack.popLast()
+        #kmers.seeds[i] = kmer_stack[i] # would also be fine
+        #echo format("[$#]->$#", i, kmers.seeds[i].kmer)
         inc(i)
 
     return kmers
 
-
-##  @return uninitialized
-#
-proc newDna(size: int): Dna =
-    return newString(size)
-
 ##  A function to convert the binary DNA back into character
 ##  @param kmer   up to 32 2-bit bases
 ##  @param k      kmer length
-##  @param strand if true, start at LSB
+##  @param strand If true, start at kth bit and go backwards.
+##
+##  Zero is A, one is C, G is two, and T is 3
 #
-proc bin_to_dna*(kmer: uint64; k: uint8; strand: bool): string =
-    var lookup: array[4, char] = ['T', 'G', 'C', 'A']
+proc bin_to_dna*(kmer: uint64; k: uint8; strand: bool): Dna =
+    var lookup: array[4, char] = ['A', 'C', 'G', 'T']
     var mask: uint64 = 3
     var i: uint8 = 0
     var tmp: uint64 = 0
@@ -205,7 +214,7 @@ proc make_searchable*(kms: pot_t): int {.discardable.} =
     while i < kms.seeds.len():
         let key = kms.seeds[i].kmer
         if kms.ht.hasKeyOrPut(key, i):
-            echo format("Duplicate seed $# @$#, not re-adding @$#", key, i, kms.ht[key], i)
+            echo format("WARNING: Duplicate seed $# @$#, not re-adding @$#", key, i, kms.ht[key], i)
         inc(i)
 
     kms.searchable = true
@@ -219,7 +228,7 @@ proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
     var hit_index: int
 
     var i: int = 0
-    echo format("target.ht=$#", target.ht)
+    #echo format("target.ht=$#", target.ht)
     #echo format("query.ht=$#", query.ht)
     while i < query.seeds.len():
         let key = query.seeds[i].kmer

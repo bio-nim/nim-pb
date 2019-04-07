@@ -1,14 +1,26 @@
 # PB Utilities
+So far, these are just Nim re-writes of
+http://bitbucket.pacificbiosciences.com:7990/users/zkronenberg/repos/utils/
 
-## Testing
+## Set up
+
+    source module.sh
+    export NIMBLE_DIR=$(pwd)/.git/nimble  # recommended
+
+## Test
 To run unit-tests in the "tests/" directory:
 
     nimble test
 
-## Integration testing
+## Test integration
 
-    nimble integ
+    nimble integ  # redundant with our unit-tests, but you get the idea
 
-## Installation
+## Install
 
     nimble install
+
+## Debug and develop
+
+    make
+    make integ

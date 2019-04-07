@@ -11,10 +11,11 @@ proc main*(args: seq[string]): int =
     echo format("Starting seq: $#", sq)
 
     var ans_lookups = [ # expect 6?
-        "TCGGCTACTATT",
-        "ATCGGCTACTAT",
+        "AGCCGATGATAA",
         "TAGCCGATGATA",
-        "AGCCGATGATAA"]
+        "ATCGGCTACTAT",
+        "TCGGCTACTATT",
+    ]
     var kms: kmers.pot_t = kmers.dna_to_kmer(sq, 12)
     var qms: kmers.pot_t = kmers.dna_to_kmer(sq, 12)
 
@@ -24,13 +25,11 @@ proc main*(args: seq[string]): int =
     echo "qms"
     kmers.print_pot(qms)
 
-    discard kmers.make_searchable(kms)
-
-    var i: uint32
+    discard kmers.make_searchable(kms)  # also sorts
 
     var final_res: int = 0
+    var i: uint32 = 0
 
-    i = 0
     while i < kms.n:
         let tmp = kmers.bin_to_dna(kms.seeds[i].kmer, kms.word_size,
                                    kms.seeds[i].strand)
@@ -40,7 +39,7 @@ proc main*(args: seq[string]): int =
             system.currentSourcePath(), kms.seeds[i].kmer, kms.seeds[i].pos, ans_lookups[i], tmp,
                 if res != 0: "FAIL" else: "PASS")
 
-        if res != 0: final_res = 1
+        final_res = final_res or res
 
         inc(i)
 

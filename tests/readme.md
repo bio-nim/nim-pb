@@ -1,5 +1,7 @@
 ## tests
 
-**nimble** expects unit tests in the "tests/" directory. Run them via
+**nimble** expects unit tests in the "tests/" directory. But you can run these
+directly via:
 
-    nimble test
+    cd tests/
+    nim c -r t_kmers

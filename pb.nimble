@@ -6,7 +6,7 @@ author        = "Christopher Dunn"
 description   = "Utilities for bioinformatics"
 license       = "BSD-3-Clause"
 srcDir        = "src"
-installDirs   = @["."]
+installDirs   = @["pbpkg"]
 bin           = @["pb"]
 
 

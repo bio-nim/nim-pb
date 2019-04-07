@@ -3,7 +3,7 @@
 import deques
 from os import nil
 from strutils import format
-from pbutils/kmers import nil
+from pbpkg/kmers import nil
 
 proc main*(args: seq[string]): int =
     var sq = "ATCGGCTACTATT"

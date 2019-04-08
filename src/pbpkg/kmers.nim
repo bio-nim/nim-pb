@@ -58,12 +58,16 @@ var seq_nt4_table: array[256, int] = [
 proc newDna(size: int): Dna =
     return newString(size)
 
+# hashes for sets and tables
+
 proc hash*(s: kmers.seed_t): hashes.Hash =
    #hashes.hash(s.pos) + hashes.hash(s.kmer shl 8) + hashes.hash(s.strand)
-   hashes.hash([s.pos.int, s.kmer.int, s.strand.int])
+   hashes.hash([s.pos.uint64, s.kmer.uint64, s.strand.uint64])
 
 proc hash*(p: kmers.seed_pair_t): hashes.Hash =
    hashes.hash([hash(p.a), hash(p.b)])
+
+# convenience for C coders
 
 template `<<`(a, b: uint64): uint64 =
     a shl b

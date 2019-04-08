@@ -10,7 +10,7 @@ proc main*(args: seq[string]): int =
 
     echo format("Starting seq: $#", sq)
 
-    var ans_lookups = [ # expect 6?
+    var ans_lookups = [
         "AGCCGATGATAA",
         "TAGCCGATGATA",
         "ATCGGCTACTAT",
@@ -58,5 +58,5 @@ proc main*(args: seq[string]): int =
 
     return final_res
 
-if isMainModule:
+when isMainModule:
     quit main(os.commandLineParams())

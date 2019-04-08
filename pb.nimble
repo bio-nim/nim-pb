@@ -12,7 +12,7 @@ bin           = @["pb"]
 
 # Dependencies
 
-requires "nim >= 0.19.6"
+requires "nim >= 0.19.6", "cligen"
 
 task integ, "Runs integration tests":
   let cmd = "nim c -r test/kmer_test1"

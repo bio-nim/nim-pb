@@ -14,8 +14,8 @@ test "bin_to_dna":
     check bin_to_dna(0b00011011, 4, false) == "ACGT"
     check bin_to_dna(0b00011011, 4, true)  == "TGCA"
 
-test "dna_to_kmer":
-    check dna_to_kmer("AAAA", 2).seeds.len() == 6
+test "dna_to_kmers":
+    check dna_to_kmers("AAAA", 2).seeds.len() == 6
 
 test "sorted_kmers":
     let
@@ -27,7 +27,7 @@ test "sorted_kmers":
             "TCGGCTACTATT",
         ]
         k = 12
-        kms: pot_t = dna_to_kmer(sq, k)
+        kms: pot_t = dna_to_kmers(sq, k)
     discard make_searchable(kms)  # sort
     let got = sequtils.mapIt(kms.seeds, bin_to_dna(it.kmer, k.uint8, it.strand))
     check got == expected
@@ -36,8 +36,8 @@ test "search":
     let
         sq = "ATCGGCTACTATT"
         k = 12
-        kms: pot_t = dna_to_kmer(sq, k)
-        qms: pot_t = dna_to_kmer(sq, k)
+        kms: pot_t = dna_to_kmers(sq, k)
+        qms: pot_t = dna_to_kmers(sq, k)
     check make_searchable(kms) == 0
     let hits = search(kms, qms)
     check hits.len() == 4

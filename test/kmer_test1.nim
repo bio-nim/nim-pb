@@ -16,8 +16,8 @@ proc main*(args: seq[string]): int =
         "ATCGGCTACTAT",
         "TCGGCTACTATT",
     ]
-    var kms: kmers.pot_t = kmers.dna_to_kmer(sq, 12)
-    var qms: kmers.pot_t = kmers.dna_to_kmer(sq, 12)
+    var kms: kmers.pot_t = kmers.dna_to_kmers(sq, 12)
+    var qms: kmers.pot_t = kmers.dna_to_kmers(sq, 12)
 
     echo "kms"
     kmers.print_pot(kms)

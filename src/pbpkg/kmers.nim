@@ -70,7 +70,7 @@ proc hash*(p: kmers.seed_pair_t): hashes.Hash =
 ##
 ##  Zero is A, one is C, G is two, and T is 3
 #
-proc dna_to_kmer*(sq: Dna; k: int): pot_t =
+proc dna_to_kmers*(sq: Dna; k: int): pot_t =
     if sq.len == 0 or k > 32:
         return nil
     new(result)

@@ -1,6 +1,6 @@
 # vim: sw=4 ts=4 sts=4 tw=0 et:
-import unittest
 import pbpkg/kmers
+import unittest
 import deques
 import sequtils
 import sets

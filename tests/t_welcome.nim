@@ -5,9 +5,8 @@
 #
 # To run these tests, simply execute `nimble test`.
 
-import unittest
-
 import pbpkg/welcome
+import unittest
 
 test "correct welcome":
   check getWelcomeMessage() == "Hello, World!"

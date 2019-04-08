@@ -6,13 +6,15 @@ from hashes import nil
 from strutils import format
 
 type
-    Dna* = string             # someday, this might be something more compact
+    Dna* = string             # someday, this might be an array
+    Bin* = uint64             # compact bitvector of DNA
+    ##  In bitvector, A is 0, C is 1, G is two, and T is 3.
 
     ##  kmer - a uint64 supporting a maximum of 32 DNA bases.
     ##  pos  - position along the sequence
     ##  strand - if true, reverse kmers
     seed_t* = object
-        kmer*: uint64
+        kmer*: Bin
         pos*: uint32
         strand*: bool
 
@@ -29,7 +31,7 @@ type
         word_size*: uint8     # <=32
         n*: uint32            # same as len(seeds)
         seeds*: seq[seed_t]
-        ht*: ref tables.Table[uint64, int]
+        ht*: ref tables.Table[Bin, int]
         searchable*: bool
 
 var seq_nt4_table: array[256, int] = [
@@ -63,12 +65,17 @@ proc hash*(s: kmers.seed_t): hashes.Hash =
 proc hash*(p: kmers.seed_pair_t): hashes.Hash =
    hashes.hash([hash(p.a), hash(p.b)])
 
+template `<<`(a, b: uint64): uint64 =
+    a shl b
+
+template `>>`(a, b: uint64): uint64 =
+    a shr b
+
+
 ##  Converts a char * into a set of seed_t objects.
 ##  @param  sq  - sequence
 ##  @param  k - kmer size (<=32)
 ##  @return pot
-##
-##  Zero is A, one is C, G is two, and T is 3
 #
 proc dna_to_kmers*(sq: Dna; k: int): pot_t =
     if sq.len == 0 or k > 32:
@@ -77,7 +84,7 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
 
     var
         shift1: uint64 = 2'u64 * (k - 1).uint64
-        mask: uint64 = (1'u64 shl (2 * k).uint64) - 1
+        mask: uint64 = (1'u64 << (2 * k).uint64) - 1
     #echo format("shift1=$# mask=$#", shift1, mask)
 
     var forward_kmer: seed_t
@@ -103,11 +110,10 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
 
     while i < sq.len():
         let ch = cast[uint8](sq[i])
-        let c: uint8 = seq_nt4_table[ch].uint8
+        let c = seq_nt4_table[ch].uint64
         if c < 4:
-            forward_kmer.kmer = (forward_kmer.kmer shl 2 or c) and mask
-            reverse_kmer.kmer = (reverse_kmer.kmer shr 2) or (
-                    3'u8 xor c).uint64 shl shift1
+            forward_kmer.kmer = (forward_kmer.kmer << 2 or c) and mask
+            reverse_kmer.kmer = (reverse_kmer.kmer >> 2) or (3'u64 xor c) << shift1
             #echo format("[$#]=$# $#==$#($# $#) f:$# r:$#",
             #    i, sq[i], ch, c, (3'u8 xor c), (3'u8 xor c).uint64 shl shift1, forward_kmer.kmer, reverse_kmer.kmer)
             inc(lk)
@@ -151,7 +157,7 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
 ##
 ##  Zero is A, one is C, G is two, and T is 3
 #
-proc bin_to_dna*(kmer: uint64; k: uint8; strand: bool): Dna =
+proc bin_to_dna*(kmer: Bin; k: uint8; strand: bool): Dna =
     var lookup: array[4, char] = ['A', 'C', 'G', 'T']
     var mask: uint64 = 3
     var i: uint8 = 0
@@ -163,7 +169,7 @@ proc bin_to_dna*(kmer: uint64; k: uint8; strand: bool): Dna =
     while i < k:
         tmp = kmer
         offset = if not strand: (k - i - 1) * 2 else: (i * 2)
-        tmp = tmp shr offset
+        tmp = tmp >> offset
         dna[i] = lookup[mask and tmp]
         inc(i)
 
@@ -208,7 +214,7 @@ proc make_searchable*(kms: pot_t): int {.discardable.} =
     if kms.searchable:
         return 1
     kms.seeds.sort(cmp_seeds)
-    kms.ht = newTable[uint64, int]()
+    kms.ht = newTable[Bin, int]()
 
     var i: int = 0
     while i < kms.seeds.len():

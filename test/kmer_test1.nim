@@ -4,6 +4,7 @@ import deques
 from os import nil
 from strutils import format
 from pbpkg/kmers import nil
+from pbpkg/kmers import Bin
 
 proc main*(args: seq[string]): int =
     var sq = "ATCGGCTACTATT"
@@ -55,6 +56,23 @@ proc main*(args: seq[string]): int =
                 kmers.bin_to_dna(pair.b.kmer, kms.word_size, pair.b.strand))
     except:
         discard
+
+
+    var tbins  = [832088.Bin, 14315983.Bin,3328355.Bin, 3578995.Bin]
+    var fbins  = [83.Bin, 0.Bin, 5.Bin, 10000.Bin]
+
+    for b in tbins:
+     let res = kmers.haskmer(kms, b)
+     final_res = (not res).int
+     echo format("[$#:HASKMER:TEST] positive query:$# response:$# [$#]",
+      system.currentSourcePath(), b, res, if res != true: "FAIL" else: "PASS")
+
+    for b in fbins:
+     let res = kmers.haskmer(kms, b)
+     final_res = final_res or res.int
+     echo format("[$#:HASKMER:TEST] negative query:$# response:$# [$#]",
+      system.currentSourcePath(), b, res, if res != false: "FAIL" else: "PASS")
+
 
     return final_res
 

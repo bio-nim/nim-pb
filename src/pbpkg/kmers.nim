@@ -190,8 +190,8 @@ proc print_pot*(pot: pot_t) =
     while i < pot.n:
         var dna = bin_to_dna(pot.seeds[i].kmer, pot.word_size,
                          pot.seeds[i].strand)
-        echo format("pos:$# strand:$# seq:$#",
-            pot.seeds[i].pos, pot.seeds[i].strand, dna)
+        echo format("pos:$# strand:$# seq:$# bin:$#",
+            pot.seeds[i].pos, pot.seeds[i].strand, dna, pot.seeds[i].kmer)
         inc(i, 1)
 
 proc cmp_seeds(a, b: seed_t): int =
@@ -229,6 +229,18 @@ proc make_searchable*(kms: pot_t): int {.discardable.} =
 
     kms.searchable = true
     return 0
+
+##  A function that simply checks for the presence or absense of a kmer in a
+##  pot regaurdless of the position
+##  @param  pot_t * - a pointer to a pot
+##  @return false if kmer doesn't exist or pot is not searchable
+#
+proc haskmer*(target: pot_t; query: Bin): bool =
+ if not target.searchable:
+  return false
+ if target.ht.hasKey(query):
+  return true
+ return false
 
 proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
     discard make_searchable(target)

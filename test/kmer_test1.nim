@@ -8,7 +8,8 @@ from pbpkg/kmers import Bin
 
 proc log(label: string, formatstr: string, a: varargs[string, `$`]) =
     let msg = strutils.format(formatstr, a)
-    let tag = strutils.format("[$#:$#] ", system.currentSourcePath(), label)
+    #let tag = strutils.format("[TEST:$#] ", system.currentSourcePath(), label)
+    let tag = strutils.format("[TEST:$#] ", label)
     echo tag, msg
 
 proc main*(args: seq[string]): int =
@@ -41,7 +42,7 @@ proc main*(args: seq[string]): int =
                                    kms.seeds[i].strand)
         let res = cmp(tmp, ans_lookups[i])
 
-        log("DNA->BIT->DNA:TEST]", "kmer: $# pos:$# expecting:$# observed:$# [$#]",
+        log("DNA->BIT->DNA", "kmer: $# pos:$# expecting:$# observed:$# [$#]",
             kms.seeds[i].kmer, kms.seeds[i].pos, ans_lookups[i], tmp,
             if res != 0: "FAIL" else: "PASS")
 
@@ -69,13 +70,13 @@ proc main*(args: seq[string]): int =
     for b in tbins:
      let res = kmers.haskmer(kms, b)
      final_res = (not res).int
-     log("HASKMER:TEST", "positive query:$# response:$# [$#]",
+     log("HASKMER", "positive query:$# response:$# [$#]",
         b, res, if res != true: "FAIL" else: "PASS")
 
     for b in fbins:
      let res = kmers.haskmer(kms, b)
      final_res = final_res or res.int
-     log("HASKMER:TEST", "negative query:$# response:$# [$#]",
+     log("HASKMER", "negative query:$# response:$# [$#]",
          b, res, if res != false: "FAIL" else: "PASS")
 
 

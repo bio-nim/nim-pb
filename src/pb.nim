@@ -7,7 +7,7 @@ proc kmers(int_dummy: int = 42, string_dummy: string = "hello") =
     echo "pb kmers"
 proc utils(extras: seq[string], float_req: float) =
     echo "pb utils ..."
-proc phase() =
+proc phasr() =
     echo "starting"
     phasr.foo()
     echo "finished"
@@ -18,5 +18,5 @@ when isMainModule:
         [dataset, short = {}, help = {}],
         [kmers, short = {"int_dummy": 'd'}, help = {}],
         [utils, short = {}, help = {"float_req": "special help message"}],
-        [phase],
+        [phasr],
     )

@@ -32,7 +32,7 @@ proc main*(args: seq[string]): int =
     echo "qms"
     kmers.print_pot(qms)
 
-    discard kmers.make_searchable(kms)  # also sorts
+    discard kmers.make_searchable(kms) # also sorts
 
     var final_res: int = 0
     var i: uint32 = 0
@@ -64,19 +64,19 @@ proc main*(args: seq[string]): int =
         discard
 
 
-    var tbins  = [832088.Bin, 14315983.Bin,3328355.Bin, 3578995.Bin]
-    var fbins  = [83.Bin, 0.Bin, 5.Bin, 10000.Bin]
+    var tbins = [832088.Bin, 14315983.Bin, 3328355.Bin, 3578995.Bin]
+    var fbins = [83.Bin, 0.Bin, 5.Bin, 10000.Bin]
 
     for b in tbins:
-     let res = kmers.haskmer(kms, b)
-     final_res = (not res).int
-     log("HASKMER", "positive query:$# response:$# [$#]",
+        let res = kmers.haskmer(kms, b)
+        final_res = (not res).int
+        log("HASKMER", "positive query:$# response:$# [$#]",
         b, res, if res != true: "FAIL" else: "PASS")
 
     for b in fbins:
-     let res = kmers.haskmer(kms, b)
-     final_res = final_res or res.int
-     log("HASKMER", "negative query:$# response:$# [$#]",
+        let res = kmers.haskmer(kms, b)
+        final_res = final_res or res.int
+        log("HASKMER", "negative query:$# response:$# [$#]",
          b, res, if res != false: "FAIL" else: "PASS")
 
 

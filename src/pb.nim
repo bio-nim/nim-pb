@@ -15,8 +15,8 @@ proc zev() =
 when isMainModule:
     import cligen
     dispatchMulti(
-        [dataset, short={}, help={}],
-        [kmers, short={"int_dummy": 'd'}, help={}],
-        [utils, short={}, help={"float_req": "special help message"}],
+        [dataset, short = {}, help = {}],
+        [kmers, short = {"int_dummy": 'd'}, help = {}],
+        [utils, short = {}, help = {"float_req": "special help message"}],
         [zev]
     )

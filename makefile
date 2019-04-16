@@ -13,5 +13,7 @@ test:
 	nimble test --debug # uses "tests/" directory by default
 install:
 	${NIMBLE_INSTALL}
+pretty:
+	find . -name '*.nim' | xargs -L1 nimpretty --indent=4
 
 .PHONY: test

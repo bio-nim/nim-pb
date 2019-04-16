@@ -61,11 +61,11 @@ proc newDna(size: int): Dna =
 # hashes for sets and tables
 
 proc hash*(s: kmers.seed_t): hashes.Hash =
-   #hashes.hash(s.pos) + hashes.hash(s.kmer shl 8) + hashes.hash(s.strand)
-   hashes.hash([s.pos.uint64, s.kmer.uint64, s.strand.uint64])
+    #hashes.hash(s.pos) + hashes.hash(s.kmer shl 8) + hashes.hash(s.strand)
+    hashes.hash([s.pos.uint64, s.kmer.uint64, s.strand.uint64])
 
 proc hash*(p: kmers.seed_pair_t): hashes.Hash =
-   hashes.hash([hash(p.a), hash(p.b)])
+    hashes.hash([hash(p.a), hash(p.b)])
 
 # convenience for C coders
 
@@ -117,7 +117,8 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
         let c = seq_nt4_table[ch].uint64
         if c < 4:
             forward_kmer.kmer = (forward_kmer.kmer << 2 or c) and mask
-            reverse_kmer.kmer = (reverse_kmer.kmer >> 2) or (3'u64 xor c) << shift1
+            reverse_kmer.kmer = (reverse_kmer.kmer >> 2) or (
+                    3'u64 xor c) << shift1
             #echo format("[$#]=$# $#==$#($# $#) f:$# r:$#",
             #    i, sq[i], ch, c, (3'u8 xor c), (3'u8 xor c).uint64 shl shift1, forward_kmer.kmer, reverse_kmer.kmer)
             inc(lk)
@@ -180,7 +181,7 @@ proc bin_to_dna*(kmer: Bin; k: uint8; strand: bool): Dna =
     return dna
 
 proc nkmers*(pot: pot_t): int =
- return len(pot.seeds)
+    return len(pot.seeds)
 
 ##  Prints the pot structure to STDOUT
 ##  @param pot a ref to the pot
@@ -226,7 +227,8 @@ proc make_searchable*(kms: pot_t): int {.discardable.} =
     while i < kms.seeds.len():
         let key = kms.seeds[i].kmer
         if kms.ht.hasKeyOrPut(key, i):
-            echo format("WARNING: Duplicate seed $# @$#, not re-adding @$#", key, i, kms.ht[key], i)
+            echo format("WARNING: Duplicate seed $# @$#, not re-adding @$#",
+                    key, i, kms.ht[key], i)
         inc(i)
 
     kms.searchable = true
@@ -238,37 +240,37 @@ proc make_searchable*(kms: pot_t): int {.discardable.} =
 ##  @return false if kmer doesn't exist or pot is not searchable
 #
 proc haskmer*(target: pot_t; query: Bin): bool =
- if not target.searchable:
-  return false
- if target.ht.hasKey(query):
-  return true
- return false
+    if not target.searchable:
+        return false
+    if target.ht.hasKey(query):
+        return true
+    return false
 
-proc complement*(target, remove: pot_t ): int {.discardable.} =
- if(not remove.searchable):
-  echo "[FATAL] complement requires searchable second argument"
-  quit(1)
+proc complement*(target, remove: pot_t): int {.discardable.} =
+    if(not remove.searchable):
+        echo "[FATAL] complement requires searchable second argument"
+        quit(1)
 
- var kmer_stack = deques.initDeque[seed_t](128)
+    var kmer_stack = deques.initDeque[seed_t](128)
 
- var i, n: int = 0
- while i < target.seeds.len():
-  if(not haskmer(remove, target.seeds[i].kmer)):
-   deques.addLast(kmer_stack, target.seeds[i])
-   inc(n)
-  inc(i)
-  target.seeds = newSeq[seed_t](n)
+    var i, n: int = 0
+    while i < target.seeds.len():
+        if(not haskmer(remove, target.seeds[i].kmer)):
+            deques.addLast(kmer_stack, target.seeds[i])
+            inc(n)
+        inc(i)
+        target.seeds = newSeq[seed_t](n)
 
- if target.searchable:
-  clear(target.ht)
+    if target.searchable:
+        clear(target.ht)
 
- target.searchable = false;
+    target.searchable = false;
 
- while i < n:
-  target.seeds[i] = kmer_stack.popLast()
-  inc(i)
+    while i < n:
+        target.seeds[i] = kmer_stack.popLast()
+        inc(i)
 
- return 0
+    return 0
 
 proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
     discard make_searchable(target)
@@ -285,7 +287,8 @@ proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
         if key in target.ht:
             hit_index = target.ht[key]
             #echo format("For $# ($#), ql=$# tl=$#, hit_index=$#", i, key, query.seeds.len(), target.seeds.len(), hit_index)
-            while (hit_index < target.seeds.len() and key == target.seeds[hit_index].kmer):
+            while (hit_index < target.seeds.len() and key == target.seeds[
+                    hit_index].kmer):
                 #echo format("--For $# ($#), ql=$# tl=$#, hit_index=$#", i, key, query.seeds.len(), target.seeds.len(), hit_index)
                 hit.a = query.seeds[i]
                 hit.b = target.seeds[hit_index]

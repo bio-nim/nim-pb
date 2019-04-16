@@ -4,6 +4,9 @@ import tables
 from algorithm import sort
 from hashes import nil
 from strutils import format
+from ./util import raiseEx, PbError
+
+export PbError
 
 type
     Dna* = string             # someday, this might be an array
@@ -29,7 +32,7 @@ type
     ##  n  - the number of kmers in the database (h)
     pot_t* = ref object
         word_size*: uint8     # <=32
-        n*: uint32            # same as len(seeds)
+        #n*: uint32            # same as len(seeds)
         seeds*: seq[seed_t]
         ht*: ref tables.Table[Bin, int]
         searchable*: bool
@@ -82,9 +85,8 @@ template `>>`(a, b: uint64): uint64 =
 ##  @return pot
 #
 proc dna_to_kmers*(sq: Dna; k: int): pot_t =
-    if sq.len == 0 or k > 32:
-        return nil
-    new(result)
+    if k > 32:
+        raiseEx("k > 32")
 
     var
         shift1: uint64 = 2'u64 * (k - 1).uint64
@@ -142,7 +144,7 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
     var kmers: pot_t
     new(kmers)
     kmers.seeds = newSeq[seed_t](n)
-    kmers.n = n.uint32
+    #kmers.n = n.uint32
     kmers.word_size = k.uint8
     kmers.searchable = false
     i = 0
@@ -187,15 +189,20 @@ proc nkmers*(pot: pot_t): int =
 ##  @param pot a ref to the pot
 #
 proc print_pot*(pot: pot_t) =
-    var i: uint32 = 0
+    var i: int = 0
 
-    i = 0
-    while i < pot.n:
-        var dna = bin_to_dna(pot.seeds[i].kmer, pot.word_size,
+    while i < pot.seeds.len():
+        let dna = bin_to_dna(pot.seeds[i].kmer, pot.word_size,
                          pot.seeds[i].strand)
         echo format("pos:$# strand:$# seq:$# bin:$#",
             pot.seeds[i].pos, pot.seeds[i].strand, dna, pot.seeds[i].kmer)
         inc(i, 1)
+
+proc get_dnas*(pot: pot_t): seq[Dna] =
+    for i in 0 ..< pot.seeds.len():
+        let dna = bin_to_dna(pot.seeds[i].kmer, pot.word_size,
+                         pot.seeds[i].strand)
+        result.add(dna)
 
 proc cmp_seeds(a, b: seed_t): int =
     let c = a.kmer
@@ -246,35 +253,25 @@ proc haskmer*(target: pot_t; query: Bin): bool =
         return true
     return false
 
-proc complement*(target, remove: pot_t): int {.discardable.} =
+proc complement*(target, remove: pot_t) =
     if(not remove.searchable):
-        echo "[FATAL] complement requires searchable second argument"
-        quit(1)
+        raiseEx("complement requires searchable second argument")
 
-    var kmer_stack = deques.initDeque[seed_t](128)
+    var kmer_stack = newSeq[seed_t]()
 
-    var i, n: int = 0
-    while i < target.seeds.len():
+    for i in 0 ..< target.seeds.len():
         if(not haskmer(remove, target.seeds[i].kmer)):
-            deques.addLast(kmer_stack, target.seeds[i])
-            inc(n)
-        inc(i)
-        target.seeds = newSeq[seed_t](n)
+            kmer_stack.add(target.seeds[i])
 
     if target.searchable:
         clear(target.ht)
 
     target.searchable = false;
-
-    while i < n:
-        target.seeds[i] = kmer_stack.popLast()
-        inc(i)
-
-    return 0
+    target.seeds = kmer_stack
 
 proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
     discard make_searchable(target)
-    echo format("Searching through $# kmers", query.n)
+    echo format("Searching through $# kmers", query.seeds.len())
     var hit_stack = deques.initDeque[seed_pair_t](128)
     var hit: seed_pair_t
     var hit_index: int

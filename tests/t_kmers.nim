@@ -45,13 +45,51 @@ test "search":
     check sets.toHashSet(seqUtils.toSeq(hits)).len() == 4 # 4 unique items
     #check sets.len(sets.toHashSet(seqUtils.toSeq(deques.items(hits)))) == 4  # same as above
 
-test "complement":
-    let
-        sq = "ATCGGCTACTATT"
-        k = 12
-        kms = kmers.dna_to_kmers(sq, k)
-        qms = kmers.dna_to_kmers(sq, k)
+suite "complement":
+  let
+    sq = "ATCGGCTACTATT"
+    k = 12
+
+  test "exc":
+    let qms = kmers.dna_to_kmers(sq, k)
+    let kms = kmers.dna_to_kmers(sq, k)
+    expect kmers.PbError:
+        kmers.complement(kms, qms)
+
+  test "complement_of_self_is_nothing":
+    let kms = kmers.dna_to_kmers(sq, k)
+    let qms = deepCopy(kms)
+    check qms[] == kms[]
+    check kmers.nkmers(qms) == 4
+    check kmers.nkmers(kms) == 4
     discard kmers.make_searchable(qms)
-    discard kmers.complement(kms, qms)
+    check qms.searchable
+    check not kms.searchable
+
+    kmers.complement(kms, qms)
+
     check kmers.nkmers(kms) == 0
     check kmers.nkmers(qms) == 4
+    check qms.searchable
+    check not kms.searchable
+
+    let
+        expected: array[0, string] = []
+        got = kmers.get_dnas(kms)
+    check got == expected
+
+  test "complement_of_nothing_is_self":
+    let kms = kmers.dna_to_kmers(sq, k)
+    let qms = kmers.dna_to_kmers("", k)
+    let orig = deepCopy(kms)
+    check kmers.nkmers(qms) == 0
+    check kmers.nkmers(kms) == 4
+    discard kmers.make_searchable(qms)
+    check qms.searchable
+
+    kmers.complement(kms, qms)
+
+    check kmers.nkmers(kms) == 4
+    let got = kmers.get_dnas(kms)
+    let expected = kmers.get_dnas(orig)
+    check got == expected

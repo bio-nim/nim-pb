@@ -4,6 +4,8 @@ export NIMBLE_DIR
 # or use --nimbleDir:${NIMBLE_DIR} everywhere
 NIMBLE_INSTALL=nimble install --debug -y
 
+quick:
+	nim c -r tests/t_kmers.nim
 integ:
 	${MAKE} -C test
 help:

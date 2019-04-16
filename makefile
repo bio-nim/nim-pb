@@ -4,6 +4,9 @@ export NIMBLE_DIR
 # or use --nimbleDir:${NIMBLE_DIR} everywhere
 NIMBLE_INSTALL=nimble install --debug -y
 
+default:
+	nim c --out:./pb src/pb.nim
+	./pb main -h
 quick:
 	nim c -r tests/t_kmers.nim
 integ:

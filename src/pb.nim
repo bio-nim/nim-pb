@@ -1,6 +1,7 @@
 # vim: sw=4 ts=4 sts=4 tw=0 et:
 #import pbpkg/zev
 from pbpkg/rotate import nil
+from pbpkg/phasr import nil
 
 proc dataset(extras: seq[string]) =
     echo "pb dataset"
@@ -36,4 +37,5 @@ when isMainModule:
        "output": "fasta file output",
             },
         ],
+        [phasr.main, cmdName="phasr"],
     )

@@ -3,6 +3,7 @@
 from pbpkg/align import nil
 from pbpkg/raptor_db import nil
 from pbpkg/rotate import nil
+from pbpkg/phasr import nil
 
 proc dataset(extras: seq[string]) =
     echo "pb dataset"
@@ -40,5 +41,11 @@ when isMainModule:
        "output": "fasta file output",
        "seed": "set seed, if non-zero",
             },
+        ],
+        [phasr.main, cmdName="phasr",
+          help = {
+            "aln_fn": "BAM alignment, sorted on 'coordinate'",
+            "ref_fn": "FASTA reference",
+          },
         ],
     )

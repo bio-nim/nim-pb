@@ -1,30 +1,30 @@
 # vim: sw=4 ts=4 sts=4 tw=0 et:
+from strutils import format
 import hts
 import os
 import ./kmers
 
 proc foo*() =
     echo "foo"
-#[
+
 proc readaln*(bfn: string; fasta: string) =
- var b:Bam
+    const klen = 21
+    var b: hts.Bam
 
- #open reference fasta with htsnim
- reference = open_fasta(fasta)
+    hts.open(b, bfn, index=true)
+    echo "[INFO] reading bam"
+    for record in b:
+        var rseq: string
+        discard hts.sequence(record, rseq)
+        var kmers: pot_t = dna_to_kmers(rseq, klen)
+ #[
 
- open(b, bfn, index=false)
- echo "[INFO] reading bam"
- for record in b:
-  var rseq: string
-  discard sequence(record, rseq)
-  var kmers: pot_t = dna_to_kmers(rseq, 21)
-  
   # for each overlapping read
-  # complement to remove kmers that are in the reference where the read maps. 
+  # complement to remove kmers that are in the reference where the read maps.
   rseq = get_ref(reference, record.ref, record.start-20, record.end+20)
   var refkmers = dna_to_kmers(rseq, 21)
   complement(kmers, refkmers)
-  
+
   # find all read that overlap current read
 
   # count shared kmers between all overlapping reads
@@ -44,7 +44,7 @@ proc readaln*(bfn: string; fasta: string) =
   - merger function between nodes
   - dynamic programming
 
-  ouput:   
+  ouput:
   	   tuples:
    	   - phase block id [0,1,2 ... ]
 	   - phase block start
@@ -53,9 +53,16 @@ proc readaln*(bfn: string; fasta: string) =
    	   - vector of read ids
 ]#
 
-proc main*(ref_fn: string, aln_fn: string) =
-    echo "[INFO] input data:", ref_fn, " ", aln_fn
-    #readaln(aln)
+proc main*(aln_fn: string, ref_fn: string) =
+    echo "[INFO] input reference (fasta):", ref_fn, ", reads:", aln_fn
+    if strutils.find(ref_fn, "fa") == -1:
+        echo format("[WARN] Bad fasta filename? '$#'", ref_fn)
+    var refx: hts.Fai
+    assert hts.open(refx, ref_fn)
+    assert refx.len() == 1
+    let reference_dna = refx.get(refx[0])
+    readaln(aln_fn, reference_dna)
+    echo "bye"
 
 when isMainModule:
     main()

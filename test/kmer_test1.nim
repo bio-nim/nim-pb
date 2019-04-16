@@ -80,6 +80,9 @@ proc main*(args: seq[string]): int =
          b, res, if res != false: "FAIL" else: "PASS")
 
 
+    complement(kms, qms)
+    final_res = final_res or nkmers(kms)
+
     return final_res
 
 when isMainModule:

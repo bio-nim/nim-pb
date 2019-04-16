@@ -43,3 +43,14 @@ test "search":
     check hits.len() == 4
     check sets.toHashSet(seqUtils.toSeq(hits)).len() == 4  # 4 unique items
     #check sets.len(sets.toHashSet(seqUtils.toSeq(deques.items(hits)))) == 4  # same as above
+
+test "complement":
+ let
+  sq = "ATCGGCTACTATT"
+  k = 12
+  kms = kmers.dna_to_kmers(sq, k)
+  qms = kmers.dna_to_kmers(sq, k)
+ discard kmers.make_searchable(qms)
+ discard kmers.complement(kms, qms)
+ check kmers.nkmers(kms) == 0
+ check kmers.nkmers(qms) == 4

@@ -179,6 +179,8 @@ proc bin_to_dna*(kmer: Bin; k: uint8; strand: bool): Dna =
 
     return dna
 
+proc nkmers*(pot: pot_t): int =
+ return len(pot.seeds)
 
 ##  Prints the pot structure to STDOUT
 ##  @param pot a ref to the pot
@@ -241,6 +243,32 @@ proc haskmer*(target: pot_t; query: Bin): bool =
  if target.ht.hasKey(query):
   return true
  return false
+
+proc complement*(target, remove: pot_t ): int {.discardable.} =
+ if(not remove.searchable):
+  echo "[FATAL] complement requires searchable second argument"
+  quit(1)
+
+ var kmer_stack = deques.initDeque[seed_t](128)
+
+ var i, n: int = 0
+ while i < target.seeds.len():
+  if(not haskmer(remove, target.seeds[i].kmer)):
+   deques.addLast(kmer_stack, target.seeds[i])
+   inc(n)
+  inc(i)
+  target.seeds = newSeq[seed_t](n)
+
+ if target.searchable:
+  clear(target.ht)
+
+ target.searchable = false;
+
+ while i < n:
+  target.seeds[i] = kmer_stack.popLast()
+  inc(i)
+
+ return 0
 
 proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
     discard make_searchable(target)

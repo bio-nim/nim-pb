@@ -3,7 +3,7 @@
 import deques
 from os import nil
 from strutils import format
-from pbpkg/kmers import Bin, complement, nkmers
+from pbpkg/kmers import Bin, difference, nkmers
 
 proc log(label: string, formatstr: string, a: varargs[string, `$`]) =
     let msg = strutils.format(formatstr, a)
@@ -79,7 +79,7 @@ proc main*(args: seq[string]): int =
          b, res, if res != false: "FAIL" else: "PASS")
 
     discard kmers.make_searchable(qms)
-    complement(kms, qms)
+    difference(kms, qms)
     final_res = final_res or nkmers(kms)
 
     return final_res

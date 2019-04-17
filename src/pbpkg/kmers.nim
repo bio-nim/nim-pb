@@ -253,9 +253,9 @@ proc haskmer*(target: pot_t; query: Bin): bool =
         return true
     return false
 
-proc complement*(target, remove: pot_t) =
+proc difference*(target, remove: pot_t) =
     if(not remove.searchable):
-        raiseEx("complement requires searchable second argument")
+        raiseEx("difference requires searchable second argument")
 
     var kmer_stack = newSeq[seed_t]()
 

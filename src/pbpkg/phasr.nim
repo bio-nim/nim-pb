@@ -18,10 +18,19 @@ type
         rec: Record
         kmers: pot_t
 
-proc processRecord(record: Record, klen: int): ProcessedRecord =
-    var rseq: string
-    discard hts.sequence(record, rseq)
-    let kmers: pot_t = dna_to_kmers(rseq, klen)
+proc processRecord(record: Record, klen: int, rseq: Dna): ProcessedRecord =
+    var qseq: string
+    discard hts.sequence(record, qseq)
+    let kmers: pot_t = dna_to_kmers(qseq, klen)
+
+    # complement to remove kmers that are in the reference where the read maps.
+    var rsubseq = rseq.substr(record.start - klen + 1, record.stop + klen - 1)  # TODO(CD): Use a slice?
+    var refkmers = dna_to_kmers(rsubseq, klen)
+    echo "refkmers.len=", refkmers.seeds.len(), "(", rsubseq.len(), "), kmers.len=", kmers.seeds.len(), "(", qseq.len(), ")"
+    make_searchable(refkmers)
+    difference(kmers, refkmers)
+    echo " Now, kmers.len=", kmers.seeds.len()
+
     return ProcessedRecord(rec: record, kmers: kmers)
 
 type
@@ -56,7 +65,7 @@ proc filterPileup(queue: Deque[ProcessedRecord], cqi: int): Pileup =
     result.min_start = min_start
     assert result.min_start == result.precs[0].rec.start  # since we popped the rest already
 
-iterator overlaps(b: hts.Bam, klen: int): Pileup =
+iterator overlaps(b: hts.Bam, klen: int, rseq: string): Pileup =
     var last_stop = 0
     var current: Record = nil
     var current_queue_index: int = -1
@@ -71,7 +80,7 @@ iterator overlaps(b: hts.Bam, klen: int): Pileup =
                 yield filterPileup(queue, current_queue_index)  # YIELD
             current_queue_index += 1
 
-        queue.addLast(processRecord(new_record, klen))
+        queue.addLast(processRecord(new_record, klen, rseq))
 
         # Pop from left any records which do not overlap current.
         let current = queue[current_queue_index].rec
@@ -93,7 +102,7 @@ iterator overlaps(b: hts.Bam, klen: int): Pileup =
         yield filterPileup(queue, current_queue_index)  # YIELD
 
 proc readaln*(bfn: string; fasta: string) =
-    const klen = 21
+    const klen = 10
     var b: hts.Bam
 
     hts.open(b, bfn, index=true)
@@ -104,15 +113,9 @@ proc readaln*(bfn: string; fasta: string) =
     # the query, not the coordinate. So we will need to do something tricky
     # for circular references. TODO(CD).
     echo "[INFO] reading bam"
-    for ovlps in overlaps(b, klen=21):
+    for ovlps in overlaps(b, klen=klen, fasta.Dna):
         echo "[", ovlps.current.rec.start, "..", ovlps.current.rec.stop, "] len=", len(ovlps.precs), ", range=(", ovlps.min_start, "...", ovlps.max_stop, ")"
  #[
-
-  # for each overlapping read
-  # complement to remove kmers that are in the reference where the read maps.
-  rseq = get_ref(reference, record.ref, record.start-20, record.end+20)
-  var refkmers = dna_to_kmers(rseq, 21)
-  complement(kmers, refkmers)
 
   # find all read that overlap current read
 

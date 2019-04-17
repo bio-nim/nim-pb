@@ -4,6 +4,7 @@ from strutils import format
 import deques
 import hts
 import os
+from ./util import raiseEx
 import ./kmers
 
 proc foo*() =
@@ -23,7 +24,15 @@ proc processRecord(record: Record, klen: int): ProcessedRecord =
     let kmers: pot_t = dna_to_kmers(rseq, klen)
     return ProcessedRecord(rec: record, kmers: kmers)
 
-iterator overlaps(b: hts.Bam, klen: int): seq[ProcessedRecord] =
+type
+    Pileup = object
+        # I'm not sure I've named this well. It's a list of records that overlap a given one,
+        # all processed for kmers already.
+        precs: seq[ProcessedRecord]
+        current: int  # This is the index into precs of the record we are currently comparing with.
+        # All other recs overlap this one.
+
+iterator overlaps(b: hts.Bam, klen: int): Pileup =
     var current: Record
     var current_stack_index: int
     var stack = deques.initDeque[ProcessedRecord](64)
@@ -36,7 +45,7 @@ iterator overlaps(b: hts.Bam, klen: int): seq[ProcessedRecord] =
             current_stack_index = 0
             current = record
         if record.start >= current.stop:
-            yield sequtils.toSeq(stack)  # YIELD
+            yield Pileup(precs: sequtils.toSeq(stack), current: current_stack_index)  # YIELD
 
             # Switch current to next record.
             current_stack_index += 1
@@ -63,8 +72,8 @@ proc readaln*(bfn: string; fasta: string) =
     # for circular references. TODO(CD).
     echo "[INFO] reading bam"
     for ovlps in overlaps(b, klen=21):
-        echo "len=", len(ovlps)
-        echo " range=", ovlps[0].rec.start, "..", ovlps[^1].rec.stop
+        echo "len=", len(ovlps.precs)
+        echo ovlps.current, " range=", ovlps.precs[0].rec.start, "..", ovlps.precs[^1].rec.stop
  #[
 
   # for each overlapping read
@@ -106,7 +115,8 @@ proc main*(aln_fn: string, ref_fn: string) =
     if strutils.find(ref_fn, "fa") == -1:
         echo format("[WARN] Bad fasta filename? '$#'", ref_fn)
     var refx: hts.Fai
-    assert hts.open(refx, ref_fn)
+    if not hts.open(refx, ref_fn):
+        raiseEx(format("Could not open '$#'", ref_fn))
     assert refx.len() == 1
     let reference_dna = refx.get(refx[0])
     readaln(aln_fn, reference_dna)

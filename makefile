@@ -5,7 +5,8 @@ export NIMBLE_DIR
 NIMBLE_INSTALL=nimble install --debug -y
 
 default:
-	nim c -r test/phasr_test.nim
+	nim c test/phasr_test.nim
+	./test/phasr_test
 quick:
 	nim c -r tests/t_kmers.nim
 integ:

@@ -5,7 +5,7 @@ import pbpkg/phasr
 
 const
     ref_fn = "/pbi/dept/secondary/siv/testdata/hgap/synth5k/ref.fasta"
-    aln_fn = "/pbi/dept/secondary/siv/testdata/hgap/synth5k/synth5k.bam"
+    aln_fn = "/pbi/dept/secondary/siv/testdata/hgap/synth5k/aln.bam"
 
 proc main() =
     echo "[INFO] input data:", ref_fn, " ", aln_fn

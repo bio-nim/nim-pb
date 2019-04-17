@@ -14,6 +14,8 @@ proc readaln*(bfn: string; fasta: string) =
     hts.open(b, bfn, index=true)
     echo "[INFO] reading bam"
     for record in b:
+        echo format("$# $# ($#) [$# .. $#] $#", record.tid, record.chrom, record.qname, record.start, record.stop,
+            ($record.cigar).substr(0, 32))
         var rseq: string
         discard hts.sequence(record, rseq)
         var kmers: pot_t = dna_to_kmers(rseq, klen)

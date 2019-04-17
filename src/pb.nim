@@ -37,5 +37,10 @@ when isMainModule:
        "output": "fasta file output",
             },
         ],
-        [phasr.main, cmdName="phasr"],
+        [phasr.main, cmdName="phasr",
+          help = {
+            "aln_fn": "BAM alignment, sorted on 'coordinate'",
+            "ref_fn": "FASTA reference",
+          },
+        ],
     )

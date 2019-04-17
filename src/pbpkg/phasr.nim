@@ -29,8 +29,32 @@ type
         # I'm not sure I've named this well. It's a list of records that overlap a given one,
         # all processed for kmers already.
         precs: seq[ProcessedRecord]
-        current: int  # This is the index into precs of the record we are currently comparing with.
+        current: ProcessedRecord
         # All other recs overlap this one.
+        min_start, max_stop: int
+
+proc filterPileup(queue: Deque[ProcessedRecord], cqi: int): Pileup =
+    # We know nothing is completely to the left of current because all those
+    # are popped after each "yield". However, recs could be to right of current,
+    # although they overlapped something longer, earlier in the queue.
+    let current = queue[cqi]
+    let current_stop = current.rec.stop
+    result.precs = newSeqOfCap[ProcessedRecord](queue.len())
+    result.current = current
+    var
+        min_start = current.rec.stop
+        max_stop = current.rec.start
+    for pr in queue.items():
+        if pr == current or pr.rec.start >= current_stop:
+            continue  # must overlap on the right
+        if min_start > pr.rec.start:
+            min_start = pr.rec.start
+        if max_stop < pr.rec.stop:
+            max_stop = pr.rec.stop
+        result.precs.add(pr)
+    result.max_stop = max_stop
+    result.min_start = min_start
+    assert result.min_start == result.precs[0].rec.start  # since we popped the rest already
 
 iterator overlaps(b: hts.Bam, klen: int): Pileup =
     var last_stop = 0
@@ -39,13 +63,12 @@ iterator overlaps(b: hts.Bam, klen: int): Pileup =
     var queue = deques.initDeque[ProcessedRecord](64)
     for r in b:
         let new_record = hts.copy(r) # need a copy because iterator stores record on the Bam struct
-        echo "new:"
         showRec(new_record)  # DEBUG
 
         if new_record.start >= last_stop:
             if queue.len() > 1:
                 # Flush.
-                yield Pileup(precs: sequtils.toSeq(queue), current: current_queue_index)  # YIELD
+                yield filterPileup(queue, current_queue_index)  # YIELD
             current_queue_index += 1
 
         queue.addLast(processRecord(new_record, klen))
@@ -67,7 +90,7 @@ iterator overlaps(b: hts.Bam, klen: int): Pileup =
         #showRec(queue.peekLast().rec)
 
     if queue.len() > 1:
-        yield Pileup(precs: sequtils.toSeq(queue), current: current_queue_index)  # YIELD
+        yield filterPileup(queue, current_queue_index)  # YIELD
 
 proc readaln*(bfn: string; fasta: string) =
     const klen = 21
@@ -82,8 +105,7 @@ proc readaln*(bfn: string; fasta: string) =
     # for circular references. TODO(CD).
     echo "[INFO] reading bam"
     for ovlps in overlaps(b, klen=21):
-        echo "len=", len(ovlps.precs)
-        echo ovlps.current, " range=", ovlps.precs[0].rec.start, "..", ovlps.precs[^1].rec.stop
+        echo "[", ovlps.current.rec.start, "..", ovlps.current.rec.stop, "] len=", len(ovlps.precs), ", range=(", ovlps.min_start, "...", ovlps.max_stop, ")"
  #[
 
   # for each overlapping read

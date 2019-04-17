@@ -1,6 +1,7 @@
 # vim: sw=4 ts=4 sts=4 tw=0 et:
 import deques
 import tables
+from sets import nil
 from algorithm import sort
 from hashes import nil
 from strutils import format
@@ -229,14 +230,19 @@ proc make_searchable*(kms: pot_t): int {.discardable.} =
         return 1
     kms.seeds.sort(cmp_seeds)
     kms.ht = newTable[Bin, int]()
+    #let dups = sets.initHashSet[Bin]()
+    var ndups = 0
 
     var i: int = 0
     while i < kms.seeds.len():
         let key = kms.seeds[i].kmer
         if kms.ht.hasKeyOrPut(key, i):
-            echo format("WARNING: Duplicate seed $# @$#, not re-adding @$#",
-                    key, i, kms.ht[key], i)
+            ndups += 1
+            #echo format("WARNING: Duplicate seed $# @$#, not re-adding @$#",
+            #        key, i, kms.ht[key])
         inc(i)
+    if ndups > 0:
+        echo format("WARNING: $# duplicates in kmer table", ndups)
 
     kms.searchable = true
     return 0

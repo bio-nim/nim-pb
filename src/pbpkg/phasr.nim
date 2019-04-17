@@ -35,39 +35,39 @@ type
 iterator overlaps(b: hts.Bam, klen: int): Pileup =
     var last_stop = 0
     var current: Record = nil
-    var current_stack_index: int = -1
-    var stack = deques.initDeque[ProcessedRecord](64)
+    var current_queue_index: int = -1
+    var queue = deques.initDeque[ProcessedRecord](64)
     for r in b:
         let new_record = hts.copy(r) # need a copy because iterator stores record on the Bam struct
         echo "new:"
         showRec(new_record)  # DEBUG
 
         if new_record.start >= last_stop:
-            if stack.len() > 1:
+            if queue.len() > 1:
                 # Flush.
-                yield Pileup(precs: sequtils.toSeq(stack), current: current_stack_index)  # YIELD
-            current_stack_index += 1
+                yield Pileup(precs: sequtils.toSeq(queue), current: current_queue_index)  # YIELD
+            current_queue_index += 1
 
-        stack.addLast(processRecord(new_record, klen))
+        queue.addLast(processRecord(new_record, klen))
 
         # Pop from left any records which do not overlap current.
-        let current = stack[current_stack_index].rec
-        while stack.peekFirst().rec.stop <= current.start:
-            discard stack.popFirst()
-            current_stack_index -= 1
-            assert current == stack[current_stack_index].rec
+        let current = queue[current_queue_index].rec
+        while queue.peekFirst().rec.stop <= current.start:
+            discard queue.popFirst()
+            current_queue_index -= 1
+            assert current == queue[current_queue_index].rec
         last_stop = current.stop
 
-        #echo " first: stack.len=", stack.len()
-        #showRec(stack.peekFirst().rec)
-        #echo " curr: current_stack_index=", current_stack_index
+        #echo " first: queue.len=", queue.len()
+        #showRec(queue.peekFirst().rec)
+        #echo " curr: current_queue_index=", current_queue_index
         #showRec(current)
-        #assert current == stack[current_stack_index].rec
+        #assert current == queue[current_queue_index].rec
         #echo " last:"
-        #showRec(stack.peekLast().rec)
+        #showRec(queue.peekLast().rec)
 
-    if stack.len() > 1:
-        yield Pileup(precs: sequtils.toSeq(stack), current: current_stack_index)  # YIELD
+    if queue.len() > 1:
+        yield Pileup(precs: sequtils.toSeq(queue), current: current_queue_index)  # YIELD
 
 proc readaln*(bfn: string; fasta: string) =
     const klen = 21

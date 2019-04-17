@@ -33,31 +33,41 @@ type
         # All other recs overlap this one.
 
 iterator overlaps(b: hts.Bam, klen: int): Pileup =
-    var current: Record
-    var current_stack_index: int
+    var last_stop = 0
+    var current: Record = nil
+    var current_stack_index: int = -1
     var stack = deques.initDeque[ProcessedRecord](64)
     for r in b:
-        let record = hts.copy(r) # need a copy because iterator stores record on the Bam struct
-        showRec(record)  # DEBUG
+        let new_record = hts.copy(r) # need a copy because iterator stores record on the Bam struct
+        echo "new:"
+        showRec(new_record)  # DEBUG
 
-        stack.addLast(processRecord(record, klen))
-        if stack.len() == 1:
-            current_stack_index = 0
-            current = record
-        if record.start >= current.stop:
-            yield Pileup(precs: sequtils.toSeq(stack), current: current_stack_index)  # YIELD
-
-            # Switch current to next record.
+        if new_record.start >= last_stop:
+            if stack.len() > 1:
+                # Flush.
+                yield Pileup(precs: sequtils.toSeq(stack), current: current_stack_index)  # YIELD
             current_stack_index += 1
-            current = stack[current_stack_index].rec
-            let num_before = current_stack_index - 1
-            for i in 0 .. num_before - 1:
-                let ri = stack.peekFirst().rec
-                #echo " Pop?", ri.stop, "<=?", current.start
-                if ri.stop <= current.start:
-                    discard stack.popFirst()
-                    current_stack_index -= 1
-                    assert current == stack[current_stack_index].rec
+
+        stack.addLast(processRecord(new_record, klen))
+
+        # Pop from left any records which do not overlap current.
+        let current = stack[current_stack_index].rec
+        while stack.peekFirst().rec.stop <= current.start:
+            discard stack.popFirst()
+            current_stack_index -= 1
+            assert current == stack[current_stack_index].rec
+        last_stop = current.stop
+
+        #echo " first: stack.len=", stack.len()
+        #showRec(stack.peekFirst().rec)
+        #echo " curr: current_stack_index=", current_stack_index
+        #showRec(current)
+        #assert current == stack[current_stack_index].rec
+        #echo " last:"
+        #showRec(stack.peekLast().rec)
+
+    if stack.len() > 1:
+        yield Pileup(precs: sequtils.toSeq(stack), current: current_stack_index)  # YIELD
 
 proc readaln*(bfn: string; fasta: string) =
     const klen = 21

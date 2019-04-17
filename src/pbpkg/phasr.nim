@@ -11,33 +11,44 @@ proc foo*() =
 proc showRec(record: Record) =
     echo format("$# $# ($#) [$# .. $#] $#", record.tid, record.chrom, record.qname, record.start, record.stop,
         ($record.cigar).substr(0, 32))
+type
+    ProcessedRecord = object
+        # These are both refs already.
+        rec: Record
+        kmers: pot_t
 
-iterator overlaps(b: hts.Bam): seq[Record] =
+proc processRecord(record: Record, klen: int): ProcessedRecord =
+    var rseq: string
+    discard hts.sequence(record, rseq)
+    let kmers: pot_t = dna_to_kmers(rseq, klen)
+    return ProcessedRecord(rec: record, kmers: kmers)
+
+iterator overlaps(b: hts.Bam, klen: int): seq[ProcessedRecord] =
     var current: Record
     var current_stack_index: int
-    var stack = deques.initDeque[Record](64)
+    var stack = deques.initDeque[ProcessedRecord](64)
     for r in b:
-        let record = hts.copy(r) # because iterator stores record on the Bam struct
-        stack.addLast(record)
+        let record = hts.copy(r) # need a copy because iterator stores record on the Bam struct
+        showRec(record)  # DEBUG
+
+        stack.addLast(processRecord(record, klen))
         if stack.len() == 1:
             current_stack_index = 0
             current = record
-        showRec(record)  # DEBUG
         if record.start >= current.stop:
             yield sequtils.toSeq(stack)  # YIELD
 
             # Switch current to next record.
             current_stack_index += 1
-            current = stack[current_stack_index]
-            for i in 0 .. current_stack_index - 2:
-                let ri = stack.peekFirst()
+            current = stack[current_stack_index].rec
+            let num_before = current_stack_index - 1
+            for i in 0 .. num_before - 1:
+                let ri = stack.peekFirst().rec
                 #echo " Pop?", ri.stop, "<=?", current.start
                 if ri.stop <= current.start:
                     discard stack.popFirst()
-
-        #var rseq: string
-        #discard hts.sequence(record, rseq)
-        #var kmers: pot_t = dna_to_kmers(rseq, klen)
+                    current_stack_index -= 1
+                    assert current == stack[current_stack_index].rec
 
 proc readaln*(bfn: string; fasta: string) =
     const klen = 21
@@ -51,9 +62,9 @@ proc readaln*(bfn: string; fasta: string) =
     # the query, not the coordinate. So we will need to do something tricky
     # for circular references. TODO(CD).
     echo "[INFO] reading bam"
-    for ovlps in overlaps(b):
+    for ovlps in overlaps(b, klen=21):
         echo "len=", len(ovlps)
-        echo " range=", ovlps[0].start, "..", ovlps[^1].stop
+        echo " range=", ovlps[0].rec.start, "..", ovlps[^1].rec.stop
  #[
 
   # for each overlapping read

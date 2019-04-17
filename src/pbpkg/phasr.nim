@@ -7,6 +7,8 @@ import os
 from ./util import raiseEx
 import ./kmers
 
+const klen = 21
+
 proc foo*() =
     echo "foo"
 proc showRec(record: Record) =
@@ -25,6 +27,7 @@ proc processRecord(record: Record, klen: int, rseq: Dna): ProcessedRecord =
 
     # complement to remove kmers that are in the reference where the read maps.
     var rsubseq = rseq.substr(record.start - klen + 1, record.stop + klen - 1)  # TODO(CD): Use a slice?
+    #var rsubseq = rseq.substr(record.start, record.stop)  # TODO(CD): Use a slice?
     var refkmers = dna_to_kmers(rsubseq, klen)
     echo "refkmers.len=", refkmers.seeds.len(), "(", rsubseq.len(), "), kmers.len=", kmers.seeds.len(), "(", qseq.len(), ")"
     make_searchable(refkmers)
@@ -102,7 +105,6 @@ iterator overlaps(b: hts.Bam, klen: int, rseq: string): Pileup =
         yield filterPileup(queue, current_queue_index)  # YIELD
 
 proc readaln*(bfn: string; fasta: string) =
-    const klen = 10
     var b: hts.Bam
 
     hts.open(b, bfn, index=true)

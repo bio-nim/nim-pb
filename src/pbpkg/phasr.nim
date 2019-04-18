@@ -154,7 +154,7 @@ proc main*(aln_fn: string, ref_fn: string) =
     var refx: hts.Fai
     if not hts.open(refx, ref_fn):
         raiseEx(format("Could not open '$#'", ref_fn))
-    assert refx.len() == 1
+    #assert refx.len() == 1
     let reference_dna = refx.get(refx[0])
     readaln(aln_fn, reference_dna)
     echo "bye"

@@ -8,8 +8,10 @@ import pbpkg/phasr
 const
     #ref_fn = "/pbi/dept/secondary/siv/testdata/hgap/synth5k/ref.fasta"
     #aln_fn = "/pbi/dept/secondary/siv/testdata/hgap/synth5k/aln.bam"
-    ref_fn = "/pbi/dept/secondary/siv/testdata/hgap/greg200k-sv2/ref1.fasta"
-    aln_fn = "/pbi/dept/secondary/siv/testdata/hgap/greg200k-sv2/align.bam"
+    #ref_fn = "/pbi/dept/secondary/siv/testdata/hgap/greg200k-sv2/ref1.fasta"
+    #aln_fn = "/pbi/dept/secondary/siv/testdata/hgap/greg200k-sv2/align.bam"
+    ref_fn = "/pbi/dept/secondary/siv/testdata/hgap/greg200k-sv2-ccs/ref1.fasta"
+    aln_fn = "/pbi/dept/secondary/siv/testdata/hgap/greg200k-sv2-ccs/align.bam"
 
 proc main() =
     echo "[INFO] input data:", ref_fn, " ", aln_fn

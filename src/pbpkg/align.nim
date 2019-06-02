@@ -4,11 +4,7 @@ from algorithm import nil
 from sequtils import nil
 from strutils import format
 from tables import contains, `[]`
-
-proc log(words: varargs[string, `$`]) =
-    for word in words:
-        write(stderr, word)
-    write(stderr, '\l')
+from ./util import log
 
 proc logRec(record: Record) =
     # I think len == stop-start+1, but I need to verify. ~cd
@@ -25,7 +21,7 @@ proc update_counts(bam_fn: string, params: Params,
         everything: var tables.CountTable[string],
         exclusions: var tables.CountTable[string]) =
     var b: hts.Bam
-    hts.open(b, bam_fn)    
+    hts.open(b, bam_fn)
     defer: hts.close(b)
     for record in b:
         let key: string = record.qname

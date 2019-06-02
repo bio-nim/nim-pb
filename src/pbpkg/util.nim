@@ -10,3 +10,8 @@ template withcd*(newdir: string, statements: untyped) =
     os.setCurrentDir(newdir)
     defer: os.setCurrentDir(olddir)
     statements
+
+proc log*(words: varargs[string, `$`]) =
+    for word in words:
+        write(stderr, word)
+    write(stderr, '\l')

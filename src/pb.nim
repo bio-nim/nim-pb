@@ -1,5 +1,6 @@
 # vim: sw=4 ts=4 sts=4 tw=0 et:
 #import pbpkg/zev
+from pbpkg/align import nil
 from pbpkg/rotate import nil
 
 proc dataset(extras: seq[string]) =
@@ -20,6 +21,7 @@ when isMainModule:
         [dataset, short = {}, help = {}],
         [kmers, short = {"int_dummy": 'd'}, help = {}],
         [utils, short = {}, help = {"float_req": "special help message"}],
+        [align.align_filter, cmdName="align-filter"],
         [rotate.main, cmdName="circ-orient",
             help = {
        "input": "fasta file of circular sequences",

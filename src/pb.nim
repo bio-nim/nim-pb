@@ -38,6 +38,7 @@ when isMainModule:
             help = {
        "input": "fasta file of circular sequences",
        "output": "fasta file output",
+       "seed": "set seed, if non-zero",
             },
         ],
     )

@@ -15,9 +15,10 @@ bin           = @["pb"]
 requires "nim >= 0.19.6", "cligen", "hts"
 
 task integ, "Runs integration tests":
-  var cmd = "nim c -r test/kmer_test1"
+  var cmd = ""
+  cmd = "nim c -r integ-tests/kmer_test1"
   echo cmd
   exec cmd
-  cmd = "nim c -r test/phasr_test.nim"
-  echo cmd
-  exec cmd
+  #cmd = "nim c -r integ-tests/phasr_test.nim"
+  #echo cmd
+  #exec cmd

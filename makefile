@@ -7,7 +7,8 @@ NIMBLE_INSTALL=nimble install --debug -y
 quick:
 	nim c -r tests/t_kmers.nim
 integ:
-	${MAKE} -C test
+	${MAKE} -C integ-tests
+	nimble integ --debug # slow, for now
 help:
 	nimble -h
 	nimble tasks

@@ -34,9 +34,9 @@ proc main*(args: seq[string]): int =
     discard kmers.make_searchable(kms) # also sorts
 
     var final_res: int = 0
-    var i: uint32 = 0
+    var i: int32 = 0
 
-    while i < kms.n:
+    while i < kms.seeds.len():
         let tmp = kmers.bin_to_dna(kms.seeds[i].kmer, kms.word_size,
                                    kms.seeds[i].strand)
         let res = cmp(tmp, ans_lookups[i])

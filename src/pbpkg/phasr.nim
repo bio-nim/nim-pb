@@ -70,7 +70,7 @@ proc filterPileup(queue: Deque[ProcessedRecord], cqi: int): Pileup =
 
 iterator overlaps(b: hts.Bam, klen: int, rseq: string): Pileup =
     var last_stop = 0
-    var current: Record = nil
+    #var current: Record = nil
     var current_queue_index: int = -1
     var queue = deques.initDeque[ProcessedRecord](64)
     for r in b:

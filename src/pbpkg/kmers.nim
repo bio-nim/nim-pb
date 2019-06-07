@@ -66,7 +66,7 @@ proc newDna(size: int): Dna =
 
 proc hash*(s: kmers.seed_t): hashes.Hash =
     #hashes.hash(s.pos) + hashes.hash(s.kmer shl 8) + hashes.hash(s.strand)
-    hashes.hash([s.pos.uint64, s.kmer.uint64, s.strand.uint64])
+    hashes.hash([s.pos.int64, s.kmer.int64, s.strand.int64])
 
 proc hash*(p: kmers.seed_pair_t): hashes.Hash =
     hashes.hash([hash(p.a), hash(p.b)])

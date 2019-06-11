@@ -12,7 +12,7 @@ bin           = @["pb"]
 
 # Dependencies
 
-requires "nim >= 0.19.6", "cligen", "hts"
+requires "nim >= 0.19.6", "cligen", "hts", "networkx"
 
 task integ, "Runs integration tests":
   var cmd = ""

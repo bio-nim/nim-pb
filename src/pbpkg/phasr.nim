@@ -12,7 +12,8 @@ from ./util import raiseEx
 import networkx/classes/wgraph
 import networkx/classes/graph
 from networkx/algorithms/components/connectedc import connected
-import kmers
+from "./kmers" import pot_t, spot_t, Dna, dna_to_kmers, initSpot, difference, uniqueShared, nuniq #import kmers
+
 import random
 
 const klen = 18
@@ -138,7 +139,7 @@ type
     ProcessedRecord = object
         # These are both refs already.
         rec: Record
-        kmers: spot_t
+        kmers: kmers.spot_t
 
 proc processRecord(record: Record, klen: int, rseq: Dna): ProcessedRecord =
     var qseq: string

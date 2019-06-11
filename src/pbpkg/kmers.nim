@@ -31,12 +31,13 @@ type
 
     ##  seeds - a pointer to the kmers
     ##  n  - the number of kmers in the database (h)
-    pot_t* = ref object
+    pot_t* = ref object of RootObj
         word_size*: uint8     # <=32
-        #n*: uint32            # same as len(seeds)
         seeds*: seq[seed_t]
-        ht*: ref tables.Table[Bin, int]
-        searchable*: bool
+
+    ##  searchable seed-pot
+    spot_t* = ref object of pot_t
+        ht*: tables.TableRef[Bin, int]
 
 var seq_nt4_table: array[256, int] = [
         0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -79,6 +80,26 @@ template `<<`(a, b: uint64): uint64 =
 template `>>`(a, b: uint64): uint64 =
     a shr b
 
+## Return binary version of kmer exactly matching Dna.
+## Mostly for testing, as this is not efficient for sliding windows.
+## NOT FINISHED.
+#
+proc encode(sq: Dna) =
+    assert sq.len() <= 32
+    let k = sq.len()
+    let
+        shift1: uint64 = 2'u64 * (k - 1).uint64
+        mask: uint64 = (1'u64 << (2 * k).uint64) - 1
+    var
+        forward_bin: Bin = 0
+        reverse_bin: Bin = 0
+    for i in 0 ..< k:
+        let ch = cast[uint8](sq[i])
+        let c = seq_nt4_table[ch].uint64
+        assert c < 4
+        forward_bin = (forward_bin << 2 or c) and mask
+        reverse_bin = (reverse_bin >> 2) or (
+                3'u64 xor c) << shift1
 
 ##  Converts a char * into a set of seed_t objects.
 ##  @param  sq  - sequence
@@ -89,7 +110,7 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
     if k > 32:
         raiseEx("k > 32")
 
-    var
+    let
         shift1: uint64 = 2'u64 * (k - 1).uint64
         mask: uint64 = (1'u64 << (2 * k).uint64) - 1
     #echo format("shift1=$# mask=$#", shift1, mask)
@@ -147,7 +168,6 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
     kmers.seeds = newSeq[seed_t](n)
     #kmers.n = n.uint32
     kmers.word_size = k.uint8
-    kmers.searchable = false
     i = 0
 
     while i < n:
@@ -178,7 +198,8 @@ proc bin_to_dna*(kmer: Bin; k: uint8; strand: bool): Dna =
         tmp = kmer
         offset = if not strand: (k - i - 1) * 2 else: (i * 2)
         tmp = tmp >> offset
-        dna[i] = lookup[mask and tmp]
+        #dna[i] = lookup[mask and tmp]
+        dna[i.int] = lookup[mask and tmp]
         inc(i)
 
     return dna
@@ -220,48 +241,66 @@ proc cmp_seeds(a, b: seed_t): int =
 
     return 1
 
-##  A function that sorts and loads the kmers into a hash table and sets the sort
-##  flag.
-##  @param  pot_t * - a pointer to a pot
-##  @return 0 if a new table was created
+# Actual implementation, private.
 #
-proc make_searchable*(kms: pot_t): int {.discardable.} =
-    if kms.searchable:
-        return 1
-    kms.seeds.sort(cmp_seeds)
-    kms.ht = newTable[Bin, int]()
+proc make_searchable(seeds: var seq[seed_t], ht: var tables.TableRef[Bin, int]) =
+    seeds.sort(cmp_seeds)
+    ht = newTable[Bin, int]()
     #let dups = sets.initHashSet[Bin]()
     var ndups = 0
 
     var i: int = 0
-    while i < kms.seeds.len():
-        let key = kms.seeds[i].kmer
-        if kms.ht.hasKeyOrPut(key, i):
+    while i < seeds.len():
+        let key = seeds[i].kmer
+        if ht.hasKeyOrPut(key, i):
             ndups += 1
             #echo format("WARNING: Duplicate seed $# @$#, not re-adding @$#",
-            #        key, i, kms.ht[key])
+            #        key, i, ht[key])
         inc(i)
     if ndups > 0:
         echo format("WARNING: $# duplicates in kmer table", ndups)
 
-    kms.searchable = true
-    return 0
-
-##  A function that simply checks for the presence or absense of a kmer in a
-##  pot regaurdless of the position
-##  @param  pot_t * - a pointer to a pot
-##  @return false if kmer doesn't exist or pot is not searchable
+##  Construct searchable-pot from pot.
+##  Move construct seeds (i.e. original is emptied).
+##
+##  Sort the seeds and load the kmers into a hash table.
+##  For any dups, the table refers to the first seed with that kmer.
 #
-proc haskmer*(target: pot_t; query: Bin): bool =
-    if not target.searchable:
-        return false
+proc initSpot*(kms: var pot_t): spot_t =
+    new(result)
+    result.word_size = kms.word_size
+    shallowCopy(result.seeds, kms.seeds)
+    #kms.seeds = @[]
+    kms = nil  # simpler, obvious move-construction
+    make_searchable(result.seeds, result.ht)
+
+##  Check for the presence or absence of a kmer in a
+##  pot regardless of the position.
+##  @param  pot_t * - a pointer to a pot_t
+##  @return false if kmer doesn't exist
+#
+proc haskmer*(target: spot_t; query: Bin): bool =
     if target.ht.hasKey(query):
         return true
     return false
 
-proc difference*(target, remove: pot_t) =
-    if(not remove.searchable):
-        raiseEx("difference requires searchable second argument")
+## Counts the number of shared unique kmers
+## @param pot_t * - a pointer to a pot_t
+## @param pot_t * - a pointer to a pot_t
+## @return int - number of shared kmers
+#
+proc uniqueShared*(a,b: spot_t): int =
+ result = 0
+
+ for k in a.ht.keys():
+  if(haskmer(b, k)):
+   inc(result)
+
+## Find (target - remove), without altering target.
+#
+proc difference*(target: pot_t, remove: spot_t): pot_t =
+    new(result)
+    result.word_size = target.word_size
 
     var kmer_stack = newSeq[seed_t]()
 
@@ -269,14 +308,11 @@ proc difference*(target, remove: pot_t) =
         if(not haskmer(remove, target.seeds[i].kmer)):
             kmer_stack.add(target.seeds[i])
 
-    if target.searchable:
-        clear(target.ht)
+    result.seeds = kmer_stack
 
-    target.searchable = false;
-    target.seeds = kmer_stack
-
-proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
-    discard make_searchable(target)
+## Return the seeds in the intersection of target and query.
+#
+proc search*(target: spot_t; query: pot_t): deques.Deque[seed_pair_t] =
     echo format("Searching through $# kmers", query.seeds.len())
     var hit_stack = deques.initDeque[seed_pair_t](128)
     var hit: seed_pair_t
@@ -300,3 +336,11 @@ proc search*(target: pot_t; query: pot_t): deques.Deque[seed_pair_t] =
         inc(i)
 
     return hit_stack
+
+## This function counts the number of uniq kmers in the pot if searchable if not
+## the function calls make searchable.
+## @param pot_t - a ref to a pot_t
+## TODO: add test coverage
+#
+proc nuniq*(pot: spot_t): int =
+  return len(pot.ht)

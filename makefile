@@ -21,7 +21,7 @@ install:
 	${NIMBLE_INSTALL}
 sub:
 	#cd repos/cligen; nimble develop  # so we never need to reinstall after edits
-	cd vendor/nim-kmers; ${NIMBLE_INSTALL}
+	#cd vendor/nim-kmers; ${NIMBLE_INSTALL}
 	cd vendor/nim-networkx; ${NIMBLE_INSTALL}
 pretty:
 	find . -name '*.nim' | xargs -L1 nimpretty --indent=4

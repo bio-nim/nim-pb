@@ -102,7 +102,8 @@ proc algo(pbs: TableRef[int, int], # pbs: readid -> phase-block-id
             stats[v].total += 1
             stats[v].hist[phase[v]] += 1
         var score = overallScore(g, phase)
-        echo fmt("currently at i={i}, score={score:0.3f}")
+        if (i mod 100) == 0:
+            echo fmt("currently at i={i}, score={score:0.3f}")
 
     var output = open("phasr_res.txt", fmWrite)
     result = initTable[int, int]()

@@ -16,7 +16,8 @@ from "./kmers" import pot_t, spot_t, Dna, dna_to_kmers, initSpot, difference, un
 
 import random
 
-const klen = 18
+var KMERSIZE: int = 21
+var ITERATIONS: int = 1000
 
 var inverse = newTable[int, string]() # readid -> name
 
@@ -31,8 +32,11 @@ import math
 proc getWithin(u: Node, g: ref Graph[int], phase: TableRef[int, int]): float =
     var
         within, between: int = 0
-        wcount, bcount = 0
+        wcount, bcount, total, phaseZero: int = 0
     for v, w in successors(g, u):
+        total += 1
+        if phase[v] == 0:
+            phaseZero += 1
         if phase[u] == phase[v]:
             within += w
             wcount += 1
@@ -40,7 +44,8 @@ proc getWithin(u: Node, g: ref Graph[int], phase: TableRef[int, int]): float =
             between += w
             bcount += 1
 
-    result = (float(within) / float(within+between)) * (float(1)/float(wcount))
+    var dev: float = 1 - (float(1)/float(2) - (float(phaseZero)/float(total)))
+    result = (float(within) / (float(within+between))) * dev
 
 proc switchState(n: Node, g: ref Graph[int], p: TableRef[int, int],
         ploidy: int) =
@@ -90,8 +95,7 @@ proc algo(pbs: TableRef[int, int], # pbs: readid -> phase-block-id
         #echo "phase[", i, "]=", phase[i], " ploidy=", ploidy
         #inverse[i] = readname
 
-
-    for i in 1..50000:
+    for i in 1..ITERATIONS:
         for v in nodes(g):
             switchState(v, g, phase, ploidy = ploidy)
             #votePhase(v, g, phase)
@@ -100,6 +104,7 @@ proc algo(pbs: TableRef[int, int], # pbs: readid -> phase-block-id
         var score = overallScore(g, phase)
         echo fmt("currently at i={i}, score={score:0.3f}")
 
+    var output = open("phasr_res.txt", fmWrite)
     result = initTable[int, int]()
     var frqRes = initTable[int, float]()
     var histf = newSeq[float](2) # assume ploidy==2 for now
@@ -111,12 +116,12 @@ proc algo(pbs: TableRef[int, int], # pbs: readid -> phase-block-id
                 result[rid] = i
                 max = histf[i]
                 frqRes[rid] = histf[i]
-
-
         # If histf is balanced, remove node from graph.
         if abs(histf[0] - histf[1]) < 0.05:
+            output.write("-1\t-1\t-1\t\t{frqRes[rid]}\t{inverse[rid]}\n".fmt)
             echo format("Skipping $# $#", rid, inverse[rid])
             wgraph.remove_node(g, rid.Node)
+
 
     var seen = sets.initHashSet[int]()
     var phaseBlock = 0
@@ -128,8 +133,8 @@ proc algo(pbs: TableRef[int, int], # pbs: readid -> phase-block-id
             if seen.contains(n):
                 continue
             seen.incl(n)
-            echo "res:{n}\t{phaseBlock}\t{result[n]}\t{frqRes[n]}\t{inverse[n]}".fmt
-
+            output.write("{n}\t{phaseBlock}\t{result[n]}\t{frqRes[n]}\t{inverse[n]}\n".fmt)
+    output.close()
 
 proc showRec(record: Record) =
     echo format("$# $# ($#) [$# .. $#] $#", record.tid, record.chrom,
@@ -156,8 +161,9 @@ proc processRecord(record: Record, klen: int, rseq: Dna): ProcessedRecord =
     #echo "refkmers.len=", refkmers.seeds.len(), "(", rsubseq.len(), "), kmers.len=", kmers.seeds.len(), "(", qseq.len(), ")", (record.stop-record.start)
     var refspot = initSpot(refkmers)
     var filtKmers = difference(kmers, refspot)
-    echo " Filtered kmers.len=", filtKmers.seeds.len(), " from ",
+    #[echo " Filtered kmers.len=", filtKmers.seeds.len(), " from ",
             kmers.seeds.len(), " for read ", record.qname
+            ]#
     var finalKmers = initSpot(filtKmers)
     return ProcessedRecord(rec: record, kmers: finalKmers)
 
@@ -234,7 +240,7 @@ iterator overlaps(b: hts.Bam, klen: int, rseq: string): Pileup =
             let gotAnother = nextBamRecord(next, b, new_record)
             if not gotAnother:
                 break         # None left!
-            queue.addLast(processRecord(new_record, klen, rseq))
+            queue.addLast(processRecord(new_record, KMERSIZE, rseq))
         assert queue.len() > current_queue_index
         let current = queue[current_queue_index].rec
 
@@ -261,7 +267,7 @@ iterator overlaps(b: hts.Bam, klen: int, rseq: string): Pileup =
                 let gotAnother = nextBamRecord(next, b, new_record)
                 if not gotAnother:
                     break     # but keep processing the queue
-                queue.addLast(processRecord(new_record, klen, rseq))
+                queue.addLast(processRecord(new_record, KMERSIZE, rseq))
 
         # Yield the current record.
         #echo fmt("Yield at [{current.start}, {current.stop}) for current_queue_index={current_queue_index}")
@@ -295,7 +301,7 @@ proc readaln*(bfn: string; fasta: string) =
     # the query, not the coordinate. So we will need to do something tricky
     # for circular references. TODO(CD).
     echo "[INFO] reading bam"
-    for ovlps in overlaps(b, klen = klen, fasta.Dna):
+    for ovlps in overlaps(b, klen = KMERSIZE, fasta.Dna):
         #echo fmt("ovlps.current.rec.qname='{ovlps.current.rec.qname}'")
         if not readIdLookup.hasKey(ovlps.current.rec.qname):
             readIdLookup[ovlps.current.rec.qname] = readCount
@@ -313,8 +319,8 @@ proc readaln*(bfn: string; fasta: string) =
             #echo " shared[", i, "]=", count
             let rcount = (count * 10000).int
             #echo " shared[", i, "]=", count, " ", rcount
-            echo fmt(
-                    " Adding edge ( {ovlps.current.rec.qname} -> {ovlps.precs[i].rec.qname} ) w= {rcount}")
+            #[echo fmt(
+                    " Adding edge ( {ovlps.current.rec.qname} -> {ovlps.precs[i].rec.qname} ) w= {rcount}") ]#
             wgraph.add_edge(g, rcount, (readIdLookup[
                     ovlps.current.rec.qname].Node,
                     readIdLookup[ovlps.precs[i].rec.qname].Node))
@@ -353,18 +359,22 @@ proc readaln*(bfn: string; fasta: string) =
     #    echo format("$# 0..0 $# [$#]", pb, pb2phase[pb], rids)
     #Ignore this for now.
 
-proc main*(aln_fn: string, ref_fn: string) =
+proc main*(aln_fn: string, ref_fn: string, iterations = 1000, kmersize = 21) =
     ##Phase PacBio CCS/HIFI reads.
-    echo "[INFO] input reference (fasta):", ref_fn, ", reads:", aln_fn
+
+    ITERATIONS = iterations
+    KMERSIZE   = kmersize
+
+    echo "[INFO] input reference (fasta):", ref_fn, "\n[info] alignment (reads):", aln_fn
     if strutils.find(ref_fn, "fa") == -1:
         echo format("[WARN] Bad fasta filename? '$#'", ref_fn)
-        var refx: hts.Fai
-        if not hts.open(refx, ref_fn):
-            raiseEx(format("Could not open '$#'", ref_fn))
-        #assert refx.len() == 1
-        let reference_dna = refx.get(refx[0])
-        readaln(aln_fn, reference_dna)
-        echo "bye"
+    var refx: hts.Fai
+    if not hts.open(refx, ref_fn):
+     raiseEx(format("Could not open '$#'", ref_fn))
+    #assert refx.len() == 1
+    let reference_dna = refx.get(refx[0])
+    readaln(aln_fn, reference_dna)
+    echo "bye"
 
 when isMainModule:
     main()

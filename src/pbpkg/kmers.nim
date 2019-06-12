@@ -257,8 +257,11 @@ proc make_searchable(seeds: var seq[seed_t], ht: var tables.TableRef[Bin, int]) 
             #echo format("WARNING: Duplicate seed $# @$#, not re-adding @$#",
             #        key, i, ht[key])
         inc(i)
+#[
     if ndups > 0:
         echo format("WARNING: $# duplicates in kmer table", ndups)
+
+]#
 
 ##  Construct searchable-pot from pot.
 ##  Move construct seeds (i.e. original is emptied).

@@ -46,6 +46,10 @@ when isMainModule:
           help = {
             "aln_fn": "BAM alignment, sorted on 'coordinate'",
             "ref_fn": "FASTA reference",
+            "out_fn": "Output file name",
+            "iterations" : "Number of phasing iterations per read",
+            "kmersize"   : "Kmer size",
+            "delta"      : "Frequency cut",
           },
         ],
     )

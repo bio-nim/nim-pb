@@ -81,7 +81,7 @@ type
         hist: seq[int]        # time spent in each phase
         total: int            # total time
 
-proc algo(pbs: TableRef[int, int], # pbs: readid -> phase-block-id
+proc algo(
     rn: TableRef[string, int], # rn:  name -> readid
     g: ref Graph[int]         # Node is readid
     ): Table[int, int] = # phase-block-id -> local-phase-id (up to ploidy)
@@ -120,7 +120,7 @@ proc algo(pbs: TableRef[int, int], # pbs: readid -> phase-block-id
                 result[rid] = i
                 max = histf[i]
                 frqRes[rid] = histf[i]
-        # Read was removed before algorithm (zero weights across all edges).
+        # Read was removed before algorithm (zero weights across all edges). This shoudl not be hit, but will remain for satefy.
         if not (rid in frqRes):
          output.write("-1\t-1\t-1\t\t0.0\t{inverse[rid]}\n".fmt)
          continue
@@ -291,11 +291,10 @@ proc jaccardDist*(a, b: ProcessedRecord): float =
     #echo format(" num/den=$#/($#+$#) == $#", num, da, db, num/den)
     return num/den
 
-proc readaln*(bfn: string; fasta: string) =
+proc readaln*(bfn: string; fasta: string): tuple[t:TableRef[string, int], g:ref Graph[int]] =
     var b: hts.Bam
 
     let g = newGraph[int]()
-    let phaseBlocks = newTable[int, int]()
     let readIdLookup = newTable[string, int]()
     var readCount: int = 1
 
@@ -311,20 +310,15 @@ proc readaln*(bfn: string; fasta: string) =
         #echo fmt("ovlps.current.rec.qname='{ovlps.current.rec.qname}'")
         if not readIdLookup.hasKey(ovlps.current.rec.qname):
             readIdLookup[ovlps.current.rec.qname] = readCount
-            phaseBlocks[readIdLookup[ovlps.current.rec.qname]] = 0 #readCount
             inc(readCount)
         #echo format(" Processing pileup of $# precs", ovlps.precs.len())
         for i in 0 ..< ovlps.precs.len():
             #echo fmt(" ovlps.precs[{i}].rec.qname='{ovlps.precs[i].rec.qname}'")
             if not readIdLookup.hasKey(ovlps.precs[i].rec.qname):
                 readIdLookup[ovlps.precs[i].rec.qname] = readCount
-                phaseBlocks[readIdLookup[ovlps.precs[
-                    i].rec.qname]] = 0 #readCount
                 inc(readCount)
             let count = jaccardDist(ovlps.current, ovlps.precs[i])
-            #echo " shared[", i, "]=", count
-            let rcount = (count * 10000).int
-            #echo " shared[", i, "]=", count, " ", rcount
+            let rcount = (count * 10000).int + 1
             echo fmt(
                     " Adding edge ( {ovlps.current.rec.qname} -> {ovlps.precs[i].rec.qname} ) w= {rcount}")
             wgraph.add_edge(g, rcount, (readIdLookup[
@@ -332,11 +326,10 @@ proc readaln*(bfn: string; fasta: string) =
                     readIdLookup[ovlps.precs[i].rec.qname].Node))
     for readname, i in readIdLookup:
         inverse[i] = readname
-    for u in nodes(g):
-        if allWeightsAreZero(g, u):
-            #echo "Removing node for all weights==0: ", u, " ", inverse[u]
-            g.remove_node(u)  # to avoid nan in getWithin() later
-    let pb2phase = algo(phaseBlocks, readIdLookup, g)
+    result.t = readIdLookup
+    result.g = g
+
+
 
 proc main*(aln_fn: string, ref_fn: string, out_fn: string, iterations = 1000, kmersize = 21, delta=0.75) =
     ##Phase PacBio CCS/HIFI reads.
@@ -358,8 +351,9 @@ proc main*(aln_fn: string, ref_fn: string, out_fn: string, iterations = 1000, km
      raiseEx(format("Could not open '$#'", ref_fn))
     #assert refx.len() == 1
     let reference_dna = refx.get(refx[0])
-    readaln(aln_fn, reference_dna)
-    echo "bye"
+    var gdat = readaln(aln_fn, reference_dna)
+    discard algo(gdat.t, gdat.g)
+    echo "[INFO] all good, bye!"
 
 when isMainModule:
     main()

@@ -34,26 +34,29 @@ proc allWeightsAreZero(g: ref Graph[int], u: Node): bool =
 
 proc getWithin(u: Node, g: ref Graph[int], phase: TableRef[int, int]): float =
     var
-        within, between: int = 0
+        within, between, sum, count, avg: int = 0
         wcount, bcount, total, phaseZero: int = 0
+
+
     for v, w in successors(g, u):
-        total += 1
-        if phase[v] == 0:
-            phaseZero += 1
-        if phase[u] == phase[v]:
-            within += w
-            wcount += 1
+     inc(count)
+     sum += w
+    avg = int(float(sum) / float(count))
+
+    for v, w in successors(g, u):
+        if phase[u] == phase[v] and w > avg:
+             within += w
+             wcount += 1
         else:
             between += w
             bcount += 1
 
-    var zf: float = float(phaseZero)/float(total)
-    var dev: float = 0.5 - abs(0.5 - zf)
-    #echo(phaseZero, " ", total, " ", dev)
-    assert phaseZero != total
+    let zf: float = float(phaseZero)/float(total)
+    let dev: float = 0.5 - abs(0.5 - zf)
+    let score = (float(within) / (float(within+between)))
+   # echo(u, " ", phase[u], " ", phaseZero, " ", total, " ", score, " ", dev)
 
-
-    result = (float(within) / (float(within+between))) * dev
+    result = score
 
 proc switchState(n: Node, g: ref Graph[int], p: TableRef[int, int],
         ploidy: int) =
@@ -348,7 +351,7 @@ proc main*(aln_fn: string, ref_fn: string, out_fn: string, iterations = 1000, km
         echo format("[WARN] Bad fasta filename? '$#'", ref_fn)
     var refx: hts.Fai
     if not hts.open(refx, ref_fn):
-     raiseEx(format("Could not open '$#'", ref_fn))
+     raiseEx(format("[FATAL] Could not open '$#'", ref_fn))
     #assert refx.len() == 1
     let reference_dna = refx.get(refx[0])
     var gdat = readaln(aln_fn, reference_dna)

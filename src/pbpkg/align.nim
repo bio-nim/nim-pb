@@ -42,17 +42,15 @@ proc update_counts(bam_fn: string, params: Params,
         qlengths[key] = len(q)
         if reflen >= params.min_len:
             tables.inc(exclusions, key)
-            log("exclude:" & key)
-            logRec(record)
-        else:
-            logRec(record)
+            #log("exclude:" & key)
+        #logRec(record)
     for key, qlen in tables.pairs(qlengths):
         let reflentotal = totals[key]
         let frac = float(reflentotal) / float(qlen)
         if frac >= params.min_frac:
             tables.inc(exclusions, key)
-            log("exclude:" & key)
-        log(format("$# $#/$#=$#", key, reflentotal, qlen, frac))
+            #log("exclude:" & key)
+        #log(format("$# $#/$#=$#", key, reflentotal, qlen, frac))
 
 proc align_filter*(bams_fofn: string, min_len=300000, min_frac=0.70) =
     ## Print subreads which have decent alignments in any of the bam inputs.

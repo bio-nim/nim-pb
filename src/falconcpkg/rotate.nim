@@ -1,10 +1,11 @@
-from ./util import nil
+#from ./util import nil
 from strformat import nil
 import hts
 import gc
 import strutils
 import algorithm
 import random
+import sequtils
 import sets
 import std/wordwrap
 import logging
@@ -110,6 +111,7 @@ proc whitelisted*(whitelist: WhiteList, chrom_name: string): bool =
     return whitelist.specific.contains(chrom_name)
 
 type
+    #FastaIterator = iterator
     FastaReader = iterator
     FastaWriter = proc
 
@@ -133,25 +135,51 @@ proc close(obj: SimpleFastaWriter) =
 
 iterator FaiReader(fn: string, full_sequence: var string): string {.closure.} =
     # Yield chrom_name; modify full_sequence
+    #   fn: filename
+    #   full_sequence: mutable string, for efficiency; essentially an extra return value
+
     var fai: Fai
     if not fai.open(fn):
         let msg = strformat.fmt("Problem loading fasta file '{fn}'")
-        util.raiseEx(msg)
+        #util.raiseEx(msg)
     for i in 0..<fai.len:
         var chrom_name = fai[i]
         var chrom_len = fai.chrom_len(chrom_name)
         full_sequence = fai.get(chrom_name) # modify input var
         yield chrom_name
 
-proc reorientFASTA(
-    reader: FastaReader,
-    writer: FastaWriter,
-    wl: WhiteList,
-    win: int,
-    step: int) =
-    discard
+#proc reorientFASTA(
+#    full_sequence: var string,  # mutable; modified by reader
+#    reader: FastaReader,
+#    writer: SimpleFastaWriter,
+#    whiteList: WhiteList,
+#    window: int,
+#    step: int,
+#    print: bool) =
+#
+#    var full_sequence: string # alg.rotate needs var, so Reader cannot just return it.
+#
+#    for chrom_name in reader:
+#        var sdf = calcSkew(full_sequence, window, step)
+#        if not whitelisted(whiteList, chrom_name):
+#            sdf.data[sdf.mini].pos = 0
+#        if print:
+#            printSkew(chrom_name, sdf)
+#        #echo "#windows:", sdf.data.len, " pivot index:", sdf.mini
+#        #echo "pivot pos: ", sdf.data[sdf.mini].pos, " / ", len(full_sequence),
+#        # " seq: ", chrom_name
+#
+#        discard algorithm.rotateLeft(full_sequence, sdf.data[sdf.mini].pos)
+#
+#        writer.write(full_sequence, chrom_name, sdf.data[sdf.mini].pos)
 
-proc reorient(fin: string, fon: string, wl: string, w: int, s: int,
+template toClosure(i): auto =
+  iterator j: type(i) {.closure.} =
+    for x in i:
+      yield x
+  j
+
+proc reorient(fin: string, fon: string, wl: string, window: int, step: int,
         print: bool) =
     var writer = newSimpleFastaWriter(fon)
     defer: writer.close()
@@ -164,19 +192,10 @@ proc reorient(fin: string, fon: string, wl: string, w: int, s: int,
 
     var full_sequence: string # alg.rotate needs var, so Reader cannot just return it.
 
-    for chrom_name in FaiReader(fin, full_sequence):
-        var sdf = calcSkew(full_sequence, w, s)
-        if not whitelisted(whiteList, chrom_name):
-            sdf.data[sdf.mini].pos = 0
-        if print:
-            printSkew(chrom_name, sdf)
-        #echo "#windows:", sdf.data.len, " pivot index:", sdf.mini
-        #echo "pivot pos: ", sdf.data[sdf.mini].pos, " / ", len(full_sequence),
-        # " seq: ", chrom_name
+    var reader = toClosure(FaiReader(fin, full_sequence))
+    # echo reader.type.name # in typetraits
 
-        discard algorithm.rotateLeft(full_sequence, sdf.data[sdf.mini].pos)
-
-        writer.write(full_sequence, chrom_name, sdf.data[sdf.mini].pos)
+    #reorientFASTA(full_sequence, reader, writer, whiteList, window=window, step=step, print=print)
 
 
 proc main*(input_fn: string, output_fn: string, wl_fn = "", window = 500,

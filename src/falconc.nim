@@ -76,7 +76,7 @@ when isMainModule:
         "wl-fn": "white list of sequences to rotate, one per line, no spaces, no trailing spaces",
         "window": "window size to caculate gc-skew",
         "step": "window step",
-        "print": "print skew data to files ('SEQ.gc_skew.txt'), one per sequence"
+        "print": "whether to print skew data to files ('SEQ.gc_skew.txt', one per SEQ)"
             },
         ],
         [rotate.randomize, cmdName = "circ-randomize",

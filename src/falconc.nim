@@ -79,13 +79,13 @@ when isMainModule:
         "print": "whether to print skew data to files ('SEQ.gc_skew.txt', one per SEQ)"
             },
         ],
-        [rotate.randomize, cmdName = "circ-randomize",
-            help = {
-        "input": "fasta file of circular sequences",
-        "output": "fasta file output",
-        "seed": "set seed, if non-zero",
-            },
-        ],
+        # [rotate.randomize, cmdName = "circ-randomize",
+        #     help = {
+        # "input": "fasta file of circular sequences",
+        # "output": "fasta file output",
+        # "seed": "set seed, if non-zero",
+        #     },
+        # ],
         [phasr.main, cmdName = "phasr",
           help = {
             "aln-fn": "BAM alignment, sorted on 'coordinate'",

@@ -1,6 +1,6 @@
 #from ./util import nil
 from strformat import nil
-import hts
+#import hts
 import gc
 import strutils
 import algorithm
@@ -64,29 +64,29 @@ proc printSkew*(seqname: string, sk: skewDat) =
                 2), " ", i.accum.formatFloat(ffDecimal, 2), "\n")
     output.close()
 
-proc randomize*(input: string, output: string, seed: int64 = 0) =
-    ##randomly rotates left rotates the sequence and writes to the output file.
-    if seed != 0:
-        random.randomize(seed)
-    else:
-        random.randomize()
-    var fai: Fai
-    if not fai.open(input):
-        quit "couldn't open fasta"
-
-    var outfh = open(output, fmWrite)
-    defer:
-        close(outfh)
-    for i in 0..<fai.len:
-        let chrom_name = fai[i]
-        let chrom_len = fai.chrom_len(chrom_name)
-        var full_sequence = fai.get(chrom_name)
-        var ran = random.rand(chrom_len)
-        discard algorithm.rotateLeft(full_sequence, ran)
-        echo "[INFO] randomizing: ", chrom_name
-        outfh.write(">", chrom_name, " randomly_shifted_by_bp:-",
-                 ran, "/", chrom_len, "\n")
-        outfh.write(wrapWords(full_sequence), "\n")
+#proc randomize*(input: string, output: string, seed: int64 = 0) =
+#    ##randomly rotates left rotates the sequence and writes to the output file.
+#    if seed != 0:
+#        random.randomize(seed)
+#    else:
+#        random.randomize()
+#    var fai: Fai
+#    if not fai.open(input):
+#        quit "couldn't open fasta"
+#
+#    var outfh = open(output, fmWrite)
+#    defer:
+#        close(outfh)
+#    for i in 0..<fai.len:
+#        let chrom_name = fai[i]
+#        let chrom_len = fai.chrom_len(chrom_name)
+#        var full_sequence = fai.get(chrom_name)
+#        var ran = random.rand(chrom_len)
+#        discard algorithm.rotateLeft(full_sequence, ran)
+#        echo "[INFO] randomizing: ", chrom_name
+#        outfh.write(">", chrom_name, " randomly_shifted_by_bp:-",
+#                 ran, "/", chrom_len, "\n")
+#        outfh.write(wrapWords(full_sequence), "\n")
 
 type
     WhiteList = ref object
@@ -134,19 +134,23 @@ proc close(obj: SimpleFastaWriter) =
     close(obj.fout)
 
 iterator FaiReader(fn: string, full_sequence: var string): string {.closure.} =
-    # Yield chrom_name; modify full_sequence
-    #   fn: filename
-    #   full_sequence: mutable string, for efficiency; essentially an extra return value
+    for i in 0..1:
+        yield "DUMMY"
 
-    var fai: Fai
-    if not fai.open(fn):
-        let msg = strformat.fmt("Problem loading fasta file '{fn}'")
-        #util.raiseEx(msg)
-    for i in 0..<fai.len:
-        var chrom_name = fai[i]
-        var chrom_len = fai.chrom_len(chrom_name)
-        full_sequence = fai.get(chrom_name) # modify input var
-        yield chrom_name
+#iterator FaiReader(fn: string, full_sequence: var string): string {.closure.} =
+#    # Yield chrom_name; modify full_sequence
+#    #   fn: filename
+#    #   full_sequence: mutable string, for efficiency; essentially an extra return value
+#
+#    var fai: Fai
+#    if not fai.open(fn):
+#        let msg = strformat.fmt("Problem loading fasta file '{fn}'")
+#        #util.raiseEx(msg)
+#    for i in 0..<fai.len:
+#        var chrom_name = fai[i]
+#        var chrom_len = fai.chrom_len(chrom_name)
+#        full_sequence = fai.get(chrom_name) # modify input var
+#        yield chrom_name
 
 #proc reorientFASTA(
 #    full_sequence: var string,  # mutable; modified by reader

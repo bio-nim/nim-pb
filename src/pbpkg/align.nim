@@ -10,7 +10,8 @@ proc logRec(record: Record) =
     # I think len == stop-start+1, but I need to verify. ~cd
     var s: string
     hts.sequence(record, s)
-    log(format("$# $# ($#) [$# .. $#] $# seqlen=$#", record.tid, record.chrom, record.qname, record.start, record.stop,
+    log(format("$# $# ($#) [$# .. $#] $# seqlen=$#", record.tid, record.chrom,
+        record.qname, record.start, record.stop,
         ($record.cigar).substr(0, 32), s.len()))
 
 type
@@ -52,9 +53,9 @@ proc update_counts(bam_fn: string, params: Params,
             #log("exclude:" & key)
         #log(format("$# $#/$#=$#", key, reflentotal, qlen, frac))
 
-proc align_filter*(bams_fofn: string, min_len=300000, min_frac=0.70) =
+proc align_filter*(bams_fofn: string, min_len = 300000, min_frac = 0.70) =
     ## Print subreads which have decent alignments in any of the bam inputs.
-    var params = Params(min_len:min_len, min_frac:min_frac)
+    var params = Params(min_len: min_len, min_frac: min_frac)
     log(params)
     var everything = tables.initCountTable[string]()
     var exclusions = tables.initCountTable[string]()

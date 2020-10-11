@@ -49,7 +49,7 @@ proc printSkew*(seqname: string, sk: skewDat) =
                 2), " ", i.accum.formatFloat(ffDecimal, 2), "\n")
     output.close()
 
-proc randomize*(input: string, output: string, seed: int64=0) =
+proc randomize*(input: string, output: string, seed: int64 = 0) =
     ##randomly rotates left rotates the sequence and writes to the output file.
     if seed != 0:
         random.randomize(seed)

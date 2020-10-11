@@ -62,7 +62,8 @@ type
 
 proc initSeqLineWriter(sout: File, block_size_MB: int): SeqLineWriter =
     let block_size = block_size_MB * 1024 * 1024
-    return SeqLineWriter(num_seq_lines: 0, sout: sout, num_bases_written: 0, block_size: block_size,
+    return SeqLineWriter(num_seq_lines: 0, sout: sout, num_bases_written: 0,
+        block_size: block_size,
         block_start_bases: 0, block_start_id: 0, num_blocks: 0)
 proc write_block(w: var SeqLineWriter) =
     let curr_bases_in_block = w.num_bases_written - w.block_start_bases;
@@ -126,7 +127,7 @@ proc stream(sin, sout: File, blacklist: sets.HashSet[string]) =
             continue
 
 
-proc filter*(blacklist_fn: string="") =
+proc filter*(blacklist_fn: string = "") =
     ## Read/write raptor-db to/from stdin/stdout.
     ## Exclude zmws in blacklist.
     util.log("filter sans ", blacklist_fn)

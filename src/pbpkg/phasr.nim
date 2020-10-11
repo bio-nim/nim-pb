@@ -14,13 +14,14 @@ from ./util import raiseEx
 import networkx/classes/wgraph
 import networkx/classes/graph
 from networkx/algorithms/components/connectedc import connected
-from "./kmers" import pot_t, spot_t, Dna, dna_to_kmers, initSpot, difference, uniqueShared, nuniq #import kmers
+from "./kmers" import pot_t, spot_t, Dna, dna_to_kmers, initSpot, difference,
+        uniqueShared, nuniq #import kmers
 
 type
- opts = object
-  kmersize, iterations: int
-  delta: float
-  out_fn: string
+    opts = object
+        kmersize, iterations: int
+        delta: float
+        out_fn: string
 
 var globalOpts = opts()
 
@@ -39,14 +40,14 @@ proc getWithin(u: Node, g: ref Graph[int], phase: TableRef[int, int]): float =
 
 
     for v, w in successors(g, u):
-     inc(count)
-     sum += w
+        inc(count)
+        sum += w
     avg = int(float(sum) / float(count))
 
     for v, w in successors(g, u):
         if phase[u] == phase[v] and w > avg:
-             within += w
-             wcount += 1
+            within += w
+            wcount += 1
         else:
             between += w
             bcount += 1
@@ -54,7 +55,7 @@ proc getWithin(u: Node, g: ref Graph[int], phase: TableRef[int, int]): float =
     let zf: float = float(phaseZero)/float(total)
     let dev: float = 0.5 - abs(0.5 - zf)
     let score = (float(within) / (float(within+between)))
-   # echo(u, " ", phase[u], " ", phaseZero, " ", total, " ", score, " ", dev)
+# echo(u, " ", phase[u], " ", phaseZero, " ", total, " ", score, " ", dev)
 
     result = score
 
@@ -81,17 +82,17 @@ proc overallScore(g: ref Graph[int], p: TableRef[int, int]): float =
 
 type
     PhaseStats = object
-        hist: seq[int]        # time spent in each phase
-        total: int            # total time
+        hist: seq[int] # time spent in each phase
+        total: int     # total time
 
 proc algo(
     rn: TableRef[string, int], # rn:  name -> readid
-    g: ref Graph[int]         # Node is readid
+    g: ref Graph[int] # Node is readid
     ): Table[int, int] = # phase-block-id -> local-phase-id (up to ploidy)
 
 
     var phase = newTable[int, int]() # Node -> local-phase-id
-    var stats = newTable[int, PhaseStats]() # Node -> local-phase-id
+    var stats = newTable[int, PhaseStats]()             # Node -> local-phase-id
 
     const ploidy = 2
 
@@ -125,12 +126,12 @@ proc algo(
                 frqRes[rid] = histf[i]
         # Read was removed before algorithm (zero weights across all edges). This shoudl not be hit, but will remain for satefy.
         if not (rid in frqRes):
-         output.write("-1\t-1\t-1\t\t0.0\t{inverse[rid]}\n".fmt)
-         continue
+            output.write("-1\t-1\t-1\t\t0.0\t{inverse[rid]}\n".fmt)
+            continue
         # If the Frequency is not high enough node is removed.
         if frqRes[rid] < globalOpts.delta:
-         output.write("-1\t-1\t-1\t\t{frqRes[rid]}\t{inverse[rid]}\n".fmt)
-         wgraph.remove_node(g, rid.Node)
+            output.write("-1\t-1\t-1\t\t{frqRes[rid]}\t{inverse[rid]}\n".fmt)
+            wgraph.remove_node(g, rid.Node)
 
     var seen = sets.initHashSet[int]()
     var phaseBlock = 0
@@ -165,14 +166,14 @@ proc processRecord(record: Record, klen: int, rseq: Dna): ProcessedRecord =
     # complement to remove kmers that are in the reference where the read maps.
     var rsubseq = rseq.substr(record.start - klen + 1,
             record.stop-1 + klen - 1) # TODO(CD): Use a slice?
-    #var rsubseq = rseq.substr(record.start, record.stop-1)  # TODO(CD): Use a slice?
+                                      #var rsubseq = rseq.substr(record.start, record.stop-1)  # TODO(CD): Use a slice?
     var refkmers = dna_to_kmers(rsubseq, klen)
     #echo "refkmers.len=", refkmers.seeds.len(), "(", rsubseq.len(), "), kmers.len=", kmers.seeds.len(), "(", qseq.len(), ")", (record.stop-record.start)
     var refspot = initSpot(refkmers)
     var filtKmers = difference(kmers, refspot)
     #[echo " Filtered kmers.len=", filtKmers.seeds.len(), " from ",
-            kmers.seeds.len(), " for read ", record.qname
-            ]#
+        kmers.seeds.len(), " for read ", record.qname
+        ]#
     var finalKmers = initSpot(filtKmers)
     return ProcessedRecord(rec: record, kmers: finalKmers)
 
@@ -198,7 +199,7 @@ proc filterPileup(queue: Deque[ProcessedRecord], cqi: int): Pileup =
         max_stop = current.rec.start
     for pr in queue.items():
         if pr == current or pr.rec.start >= current_stop:
-            continue          # must overlap on the right
+            continue # must overlap on the right
         if min_start > pr.rec.start:
             min_start = pr.rec.start
         if max_stop < pr.rec.stop:
@@ -248,13 +249,14 @@ iterator overlaps(b: hts.Bam, klen: int, rseq: string): Pileup =
             var new_record: hts.Record = nil
             let gotAnother = nextBamRecord(next, b, new_record)
             if not gotAnother:
-                break         # None left!
+                break # None left!
             queue.addLast(processRecord(new_record, globalOpts.kmersize, rseq))
         assert queue.len() > current_queue_index
         let current = queue[current_queue_index].rec
 
         # Flush (pop from left) any records which do not overlap current.
-        while queue.peekFirst().rec.stop <= current.start: # and assume current is not zero-length
+        while queue.peekFirst().rec.stop <=
+                current.start: # and assume current is not zero-length
             discard queue.popFirst()
             current_queue_index -= 1
             assert current == queue[current_queue_index].rec
@@ -275,7 +277,7 @@ iterator overlaps(b: hts.Bam, klen: int, rseq: string): Pileup =
                 var new_record: hts.Record = nil
                 let gotAnother = nextBamRecord(next, b, new_record)
                 if not gotAnother:
-                    break     # but keep processing the queue
+                    break # but keep processing the queue
                 queue.addLast(processRecord(new_record, globalOpts.kmersize, rseq))
 
         # Yield the current record.
@@ -294,7 +296,8 @@ proc jaccardDist*(a, b: ProcessedRecord): float =
     #echo format(" num/den=$#/($#+$#) == $#", num, da, db, num/den)
     return num/den
 
-proc readaln*(bfn: string; fasta: string): tuple[t:TableRef[string, int], g:ref Graph[int]] =
+proc readaln*(bfn: string; fasta: string): tuple[t: TableRef[string, int],
+        g: ref Graph[int]] =
     var b: hts.Bam
 
     let g = newGraph[int]()
@@ -334,24 +337,26 @@ proc readaln*(bfn: string; fasta: string): tuple[t:TableRef[string, int], g:ref 
 
 
 
-proc main*(aln_fn: string, ref_fn: string, out_fn: string, iterations = 1000, kmersize = 21, delta=0.75) =
+proc main*(aln_fn: string, ref_fn: string, out_fn: string, iterations = 1000,
+        kmersize = 21, delta = 0.75) =
     ##Phase PacBio CCS/HIFI reads.
 
     globalOpts.iterations = iterations
-    globalOpts.kmersize   = kmersize
-    globalOpts.delta      = delta
-    globalOpts.out_fn     = out_fn
+    globalOpts.kmersize = kmersize
+    globalOpts.delta = delta
+    globalOpts.out_fn = out_fn
 
     #prime random
     randomize()
 
 
-    echo "[INFO] input reference (fasta):", ref_fn, "\n[INFO] alignment (reads):", aln_fn
+    echo "[INFO] input reference (fasta):", ref_fn,
+            "\n[INFO] alignment (reads):", aln_fn
     if strutils.find(ref_fn, "fa") == -1:
         echo format("[WARN] Bad fasta filename? '$#'", ref_fn)
     var refx: hts.Fai
     if not hts.open(refx, ref_fn):
-     raiseEx(format("[FATAL] Could not open '$#'", ref_fn))
+        raiseEx(format("[FATAL] Could not open '$#'", ref_fn))
     #assert refx.len() == 1
     let reference_dna = refx.get(refx[0])
     var gdat = readaln(aln_fn, reference_dna)

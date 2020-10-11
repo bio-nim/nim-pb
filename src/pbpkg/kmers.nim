@@ -1,7 +1,7 @@
 # vim: sw=4 ts=4 sts=4 tw=0 et:
 import deques
 import tables
-from sets import nil
+#from sets import nil
 from algorithm import sort
 from hashes import nil
 from strutils import format
@@ -10,17 +10,25 @@ from ./util import raiseEx, PbError
 export PbError
 
 type
-    Dna* = string             # someday, this might be an array
-    Bin* = uint64             # compact bitvector of DNA
+    Dna* = string # someday, this might be an array
+    Bin* = uint64 # compact bitvector of DNA
     ##  In bitvector, A is 0, C is 1, G is two, and T is 3.
+
+    Min* = uint64 # minimizer
+    Strand* = enum
+        forward, reverse
 
     ##  kmer - a uint64 supporting a maximum of 32 DNA bases.
     ##  pos  - position along the sequence
-    ##  strand - if true, reverse kmers
     seed_t* = object
         kmer*: Bin
         pos*: uint32
-        strand*: bool
+        strand*: Strand
+
+    minimizer_t* = object
+        minimizer*: Min
+        pos*: uint32
+        strand*: Strand
 
     ##  a & b are two seed_t's designed for matching in the hash lookup
     seed_pair_t* = object
@@ -32,7 +40,7 @@ type
     ##  seeds - a pointer to the kmers
     ##  n  - the number of kmers in the database (h)
     pot_t* = ref object of RootObj
-        word_size*: uint8     # <=32
+        word_size*: uint8 # <=32
         seeds*: seq[seed_t]
 
     ##  searchable seed-pot
@@ -122,8 +130,8 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
     forward_kmer.pos = 0
     reverse_kmer.kmer = 0
     reverse_kmer.pos = 0
-    forward_kmer.strand = false
-    reverse_kmer.strand = true
+    forward_kmer.strand = forward
+    reverse_kmer.strand = reverse
 
     var kmer_stack = deques.initDeque[seed_t](128)
 
@@ -171,7 +179,7 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
     i = 0
 
     while i < n:
-        kmers.seeds[i] = kmer_stack.popLast()
+        kmers.seeds[i] = kmer_stack.popFirst()
         #kmers.seeds[i] = kmer_stack[i] # would also be fine
         #echo format("[$#]->$#", i, kmers.seeds[i].kmer)
         inc(i)
@@ -181,11 +189,11 @@ proc dna_to_kmers*(sq: Dna; k: int): pot_t =
 ##  A function to convert the binary DNA back into character
 ##  @param kmer   up to 32 2-bit bases
 ##  @param k      kmer length
-##  @param strand If true, start at kth bit and go backwards.
+##  @param strand If reverse, start at kth bit and go backwards.
 ##
 ##  Zero is A, one is C, G is two, and T is 3
 #
-proc bin_to_dna*(kmer: Bin; k: uint8; strand: bool): Dna =
+proc bin_to_dna*(kmer: Bin; k: uint8; strand: Strand = forward): Dna =
     var lookup: array[4, char] = ['A', 'C', 'G', 'T']
     var mask: uint64 = 3
     var i: uint8 = 0
@@ -195,11 +203,14 @@ proc bin_to_dna*(kmer: Bin; k: uint8; strand: bool): Dna =
     var dna = newDna(k.int)
     i = 0
     while i < k:
-        tmp = kmer
-        offset = if not strand: (k - i - 1) * 2 else: (i * 2)
-        tmp = tmp >> offset
-        #dna[i] = lookup[mask and tmp]
-        dna[i.int] = lookup[mask and tmp]
+        if strand == forward:
+            offset = (k - i - 1) * 2
+            tmp = kmer >> offset
+            dna[i.int] = lookup[mask and tmp]
+        else:
+            offset = i * 2
+            tmp = kmer >> offset
+            dna[i.int] = lookup[mask and not tmp]
         inc(i)
 
     return dna
@@ -243,7 +254,7 @@ proc cmp_seeds(a, b: seed_t): int =
 
 # Actual implementation, private.
 #
-proc make_searchable(seeds: var seq[seed_t], ht: var tables.TableRef[Bin, int]) =
+proc make_searchable(seeds: var seq[seed_t]; ht: var tables.TableRef[Bin, int]) =
     seeds.sort(cmp_seeds)
     ht = newTable[Bin, int]()
     #let dups = sets.initHashSet[Bin]()
@@ -274,7 +285,7 @@ proc initSpot*(kms: var pot_t): spot_t =
     result.word_size = kms.word_size
     shallowCopy(result.seeds, kms.seeds)
     #kms.seeds = @[]
-    kms = nil  # simpler, obvious move-construction
+    kms = nil # simpler, obvious move-construction
     make_searchable(result.seeds, result.ht)
 
 ##  Check for the presence or absence of a kmer in a
@@ -292,16 +303,16 @@ proc haskmer*(target: spot_t; query: Bin): bool =
 ## @param pot_t * - a pointer to a pot_t
 ## @return int - number of shared kmers
 #
-proc uniqueShared*(a,b: spot_t): int =
- result = 0
+proc uniqueShared*(a, b: spot_t): int =
+    result = 0
 
- for k in a.ht.keys():
-  if(haskmer(b, k)):
-   inc(result)
+    for k in a.ht.keys():
+        if(haskmer(b, k)):
+            inc(result)
 
 ## Find (target - remove), without altering target.
 #
-proc difference*(target: pot_t, remove: spot_t): pot_t =
+proc difference*(target: pot_t; remove: spot_t): pot_t =
     new(result)
     result.word_size = target.word_size
 
@@ -346,4 +357,4 @@ proc search*(target: spot_t; query: pot_t): deques.Deque[seed_pair_t] =
 ## TODO: add test coverage
 #
 proc nuniq*(pot: spot_t): int =
-  return len(pot.ht)
+    return len(pot.ht)
